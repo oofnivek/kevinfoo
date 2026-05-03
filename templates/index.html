@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kevinfoo Task Manager</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <script src="https://unpkg.com/htmx.org@1.9.5"></script>
+    <style>
+        .completed {
+            text-decoration: line-through;
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <section class="section">
+        <div class="container">
+            <h1 class="title">Kevinfoo Tasks</h1>
+            
+            <div class="box">
+                <form hx-post="/tasks" hx-target="#task-list" hx-swap="innerHTML" hx-on::after-request="this.reset()">
+                    <div class="field has-addons">
+                        <div class="control is-expanded">
+                            <input class="input" type="text" name="title" placeholder="What needs to be done?" required>
+                        </div>
+                        <div class="control">
+                            <button class="button is-primary" type="submit">Add Task</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div id="task-list">
+                {{> task_list}}
+            </div>
+        </div>
+    </section>
+</body>
+</html>

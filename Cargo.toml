@@ -1,0 +1,19 @@
+[package]
+name = "kevinfoo"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-web = "4.4"
+actix-files = "0.6"
+handlebars = "4.4"
+mongodb = { version = "2.8", features = ["tokio-runtime"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.35", features = ["full"] }
+dotenv = "0.15"
+futures-util = "0.3"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.6", features = ["v4", "serde"] }
+log = "0.4"
+env_logger = "0.10"

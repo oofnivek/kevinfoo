@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: kevinfoo-web
+    env: rust
+    buildCommand: cargo build --release
+    startCommand: ./target/release/kevinfoo
+    envVars:
+      - key: MONGODB_URI
+        sync: false # Should be set in Render dashboard or as a secret
+      - key: RUST_LOG
+        value: info
+    # Optional: Connect to a Render-hosted MongoDB or use Atlas

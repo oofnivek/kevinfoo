@@ -1,0 +1,5 @@
+[exclude_files]
+# Exclude mock files and test-only utilities from coverage as per AGENTS.md
+"src/mocks/*"
+"src/**/test_utils.rs"
+"tests/*"
