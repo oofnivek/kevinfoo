@@ -1,43 +1,86 @@
 <section class="section">
     <div class="container">
-        <h1 class="title has-text-centered mb-6">Available Tools</h1>
-        <div class="columns is-centered">
-            <div class="column is-4">
-                <a href="/notes" class="box has-text-centered py-6">
-                    <span class="icon is-large has-text-link mb-4">
-                        <i class="is-size-1">📝</i>
-                    </span>
-                    <h2 class="subtitle is-4">Note Manager</h2>
-                    <p class="has-text-grey">Store and manage your quick thoughts.</p>
+        <div class="has-text-centered mb-6">
+            <h1 class="title is-1 has-text-weight-bold">Available Tools</h1>
+            <p class="subtitle is-5 has-text-grey">Select a utility to get started</p>
+        </div>
+        
+        <div class="columns is-multiline is-centered">
+            <!-- Note Manager -->
+            <div class="column is-12-mobile is-6-tablet is-4-desktop is-3-widescreen">
+                <a href="/notes" class="box tool-card has-text-centered py-6">
+                    <div class="icon-wrapper mb-4">
+                        <span class="is-size-1">📝</span>
+                    </div>
+                    <h2 class="title is-4 mb-2">Note Manager</h2>
+                    <p class="has-text-grey">Store and manage your quick thoughts with ease.</p>
                 </a>
             </div>
-            <div class="column is-4">
-                <a href="/jwt" class="box has-text-centered py-6">
-                    <span class="icon is-large has-text-info mb-4">
-                        <i class="is-size-1">🔑</i>
-                    </span>
-                    <h2 class="subtitle is-4">JWT Decoder</h2>
-                    <p class="has-text-grey">Decode and inspect JSON Web Tokens.</p>
+
+            <!-- JWT Decoder -->
+            <div class="column is-12-mobile is-6-tablet is-4-desktop is-3-widescreen">
+                <a href="/jwt" class="box tool-card has-text-centered py-6">
+                    <div class="icon-wrapper mb-4">
+                        <span class="is-size-1">🔑</span>
+                    </div>
+                    <h2 class="title is-4 mb-2">JWT Decoder</h2>
+                    <p class="has-text-grey">Decode and inspect JSON Web Tokens instantly.</p>
                 </a>
             </div>
-            <div class="column is-4">
-                <a href="/tictactoe/hotseat" class="box has-text-centered py-6">
-                    <span class="icon is-large has-text-warning mb-4">
-                        <i class="is-size-1">🎮</i>
-                    </span>
-                    <h2 class="subtitle is-4">Tic Tac Toe Hotseat</h2>
-                    <p class="has-text-grey">Local multiplayer on one screen.</p>
+
+            <!-- Tic Tac Toe Hotseat -->
+            <div class="column is-12-mobile is-6-tablet is-4-desktop is-3-widescreen">
+                <a href="/tictactoe/hotseat" class="box tool-card has-text-centered py-6">
+                    <div class="icon-wrapper mb-4">
+                        <span class="is-size-1">🎮</span>
+                    </div>
+                    <h2 class="title is-4 mb-2">Tic Tac Toe Local</h2>
+                    <p class="has-text-grey">Play a classic game with a friend on one screen.</p>
                 </a>
             </div>
-            <div class="column is-4">
-                <a href="/tictactoe/online" class="box has-text-centered py-6">
-                    <span class="icon is-large has-text-info mb-4">
-                        <i class="is-size-1">🌐</i>
-                    </span>
-                    <h2 class="subtitle is-4">Tic Tac Toe Online</h2>
-                    <p class="has-text-grey">Play with anyone, anywhere.</p>
+
+            <!-- Tic Tac Toe Online -->
+            <div class="column is-12-mobile is-6-tablet is-4-desktop is-3-widescreen">
+                <a href="/tictactoe/online" class="box tool-card has-text-centered py-6">
+                    <div class="icon-wrapper mb-4">
+                        <span class="is-size-1">🌐</span>
+                    </div>
+                    <h2 class="title is-4 mb-2">Tic Tac Toe Online</h2>
+                    <p class="has-text-grey">Connect and play with anyone, anywhere in the world.</p>
                 </a>
             </div>
         </div>
     </div>
 </section>
+
+<style>
+    .tool-card {
+        height: 100%;
+        transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+        border: 1px solid rgba(0,0,0,0.05);
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+    }
+    
+    .tool-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+        border-color: #3273dc;
+    }
+
+    .icon-wrapper {
+        background: #f5f8ff;
+        width: 80px;
+        height: 80px;
+        line-height: 80px;
+        border-radius: 50%;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.3s;
+    }
+
+    .tool-card:hover .icon-wrapper {
+        background: #ebf2ff;
+    }
+</style>

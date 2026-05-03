@@ -7,30 +7,94 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <script src="https://unpkg.com/htmx.org@1.9.5"></script>
     <style>
-        .navbar { border-bottom: 1px solid #ddd; }
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .navbar {
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+            padding: 0.5rem 0;
+        }
+
+        .navbar-brand .navbar-item {
+            font-size: 1.5rem;
+            letter-spacing: -0.5px;
+        }
+
+        .main-content {
+            padding-top: 2rem;
+            padding-bottom: 4rem;
+        }
+
+        /* Smooth transitions for all links */
+        a { transition: color 0.2s ease; }
     </style>
 </head>
 <body class="has-background-light" style="min-height: 100vh;">
-    <nav class="navbar is-white mb-5" role="navigation" aria-label="main navigation">
+    <nav class="navbar is-white" role="navigation" aria-label="main navigation">
         <div class="container">
             <div class="navbar-brand">
-                <a class="navbar-item has-text-weight-bold is-size-4" href="/">
-                    🚀 ToolBox
+                <a class="navbar-item has-text-weight-bold" href="/">
+                    <span style="margin-right: 8px;">🚀</span> ToolBox
+                </a>
+
+                <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarMain">
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
                 </a>
             </div>
-            <div class="navbar-menu">
+
+            <div id="navbarMain" class="navbar-menu">
                 <div class="navbar-start">
                     <a class="navbar-item" href="/notes">Notes</a>
                     <a class="navbar-item" href="/jwt">JWT Decoder</a>
-                    <a class="navbar-item" href="/tictactoe/hotseat">Tic Tac Toe Hotseat</a>
-                    <a class="navbar-item" href="/tictactoe/online">Tic Tac Toe Online</a>
+                    <div class="navbar-item has-dropdown is-hoverable">
+                        <a class="navbar-link">Tic Tac Toe</a>
+                        <div class="navbar-dropdown is-boxed">
+                            <a class="navbar-item" href="/tictactoe/hotseat">Local Play</a>
+                            <a class="navbar-item" href="/tictactoe/online">Online Multiplayer</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="navbar-end">
+                    <div class="navbar-item">
+                        <div class="buttons">
+                            <a class="button is-light" href="https://github.com/oofnivek/kevinfoo" target="_blank">
+                                GitHub
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </nav>
 
-    <div id="content">
-        {{{body}}}
-    </div>
+    <main class="main-content">
+        <div id="content">
+            {{{body}}}
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get all "navbar-burger" elements
+            const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+
+            // Add a click event on each of them
+            $navbarBurgers.forEach( el => {
+                el.addEventListener('click', () => {
+                    // Get the target from the "data-target" attribute
+                    const target = el.dataset.target;
+                    const $target = document.getElementById(target);
+
+                    // Toggle the "is-active" class on both the "navbar-burger" and the "navbar-menu"
+                    el.classList.toggle('is-active');
+                    $target.classList.toggle('is-active');
+                });
+            });
+        });
+    </script>
 </body>
 </html>
