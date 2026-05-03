@@ -58,3 +58,17 @@ cargo tarpaulin --out Html
 ## Deployment
 
 This project is ready to be deployed on [Render.com](https://render.com) using the provided `render.yaml` blueprint. Ensure you set the `MONGODB_URI` environment variable in your Render dashboard.
+## Troubleshooting (macOS)
+
+### Port 8080 Already in Use
+If you get an error that port 8080 is already in use, you can find and stop the process using it:
+
+1. **Find the Process ID (PID)**:
+   ```bash
+   lsof -i :8080
+   ```
+2. **Kill the Process**:
+   Replace `12345` with the PID found in the previous step:
+   ```bash
+   kill -9 12345
+   ```
