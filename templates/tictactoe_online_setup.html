@@ -1,0 +1,46 @@
+<section class="section">
+    <div class="container has-text-centered" style="max-width: 500px;">
+        <h1 class="title mb-6">Tic Tac Toe Online</h1>
+        
+        <div class="box">
+            <div class="field">
+                <label class="label">Room Name</label>
+                <div class="control">
+                    <input class="input" type="text" id="room-input" placeholder="Enter room name..." required>
+                </div>
+            </div>
+            <div class="field">
+                <div class="control">
+                    <button class="button is-primary is-fullwidth" onclick="joinRoom()">Join Game</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="game-area" class="mt-6" style="display: none;" hx-ext="ws">
+            <div id="ws-container">
+                <!-- WebSocket connection will be initialized here -->
+            </div>
+        </div>
+    </div>
+</section>
+
+<script src="https://unpkg.com/htmx.org/dist/ext/ws.js"></script>
+<script>
+    function joinRoom() {
+        const roomName = document.getElementById('room-input').value;
+        if (!roomName) return;
+        
+        const gameArea = document.getElementById('game-area');
+        const wsContainer = document.getElementById('ws-container');
+        
+        // Clear previous state if any
+        wsContainer.innerHTML = `<div hx-ws="connect:/tictactoe/ws/${roomName}">
+            <div id="online-board">
+                <div class="notification is-info">Connecting to room: ${roomName}...</div>
+            </div>
+        </div>`;
+        
+        gameArea.style.display = 'block';
+        htmx.process(wsContainer);
+    }
+</script>

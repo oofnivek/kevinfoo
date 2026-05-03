@@ -1,0 +1,33 @@
+<div id="online-board">
+    <div class="mb-5">
+        <div class="tag is-large is-light mb-3">You are Player: <span class="has-text-weight-bold has-text-{{#if (eq you_are "X")}}link{{else}}danger{{/if}} ml-1">{{you_are}}</span></div>
+        
+        {{#if winner}}
+            <div class="notification is-success is-size-4 has-text-weight-bold">
+                {{winner}}
+            </div>
+        {{else}}
+            {{#if is_your_turn}}
+                <div class="notification is-link is-light is-size-5">It's <strong>Your Turn!</strong></div>
+            {{else}}
+                <div class="notification is-warning is-light is-size-5">Waiting for Opponent ({{turn}})...</div>
+            {{/if}}
+        {{/if}}
+    </div>
+
+    <div class="ttt-grid">
+        {{#each cells}}
+            <div class="ttt-cell {{#if is_occupied}}is-occupied is-{{symbol}}{{/if}}" 
+                 {{#if ../is_your_turn}}
+                    {{#unless is_occupied}}
+                        hx-ws="send"
+                        hx-vals='{"row": {{row}}, "col": {{col}}}'
+                    {{/unless}}
+                 {{/if}}>
+                {{#if value}}{{value}}{{else}}&nbsp;{{/if}}
+            </div>
+        {{/each}}
+    </div>
+    
+    <p class="is-size-7 has-text-grey mt-4">Room: {{room_id}}</p>
+</div>

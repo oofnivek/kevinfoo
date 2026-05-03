@@ -12,6 +12,7 @@ use crate::repository::note_repository::NoteRepository;
 use crate::services::note_service::NoteService;
 use crate::models::game::GameState;
 use crate::api::game_handler::GameData;
+use crate::models::multiplayer_game::GameServer;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -27,9 +28,10 @@ async fn main() -> std::io::Result<()> {
     let note_service = NoteService::new(note_repo);
     let note_service_data = web::Data::new(note_service);
 
-    // Shared game state
+    // Shared game states
     let game_data = web::Data::new(GameData {
         state: Mutex::new(GameState::default()),
+        server: web::Data::new(GameServer::new()),
     });
 
     let mut hb = Handlebars::new();
@@ -42,6 +44,8 @@ async fn main() -> std::io::Result<()> {
     hb.register_template_file("jwt_result", "./templates/jwt_result.html").expect("Failed to register jwt_result template");
     hb.register_template_file("tictactoe", "./templates/tictactoe.html").expect("Failed to register tictactoe template");
     hb.register_template_file("tictactoe_board", "./templates/tictactoe_board.html").expect("Failed to register tictactoe_board template");
+    hb.register_template_file("tictactoe_online_setup", "./templates/tictactoe_online_setup.html").expect("Failed to register tictactoe_online_setup template");
+    hb.register_template_file("tictactoe_board_online", "./templates/tictactoe_board_online.html").expect("Failed to register tictactoe_board_online template");
     
     // Register helpers
     hb.register_helper("eq", Box::new(|h: &handlebars::Helper, _: &Handlebars, _: &handlebars::Context, _: &mut handlebars::RenderContext, out: &mut dyn handlebars::Output| -> handlebars::HelperResult {
@@ -65,6 +69,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(note_service_data.clone())
             .app_data(hb_data.clone())
             .app_data(game_data.clone())
+            .app_data(game_data.server.clone())
             .service(api::note_handler::dashboard)
             .service(api::note_handler::note_index)
             .service(api::note_handler::create_note)
@@ -74,7 +79,9 @@ async fn main() -> std::io::Result<()> {
             .service(api::jwt_handler::jwt_index)
             .service(api::jwt_handler::decode_jwt)
             .service(api::jwt_handler::mint_jwt)
-            .service(api::game_handler::game_index)
+            .service(api::game_handler::hotseat_index) // Renamed
+            .service(api::game_handler::online_index)   // New
+            .service(api::game_handler::game_ws)       // New
             .service(api::game_handler::make_move)
             .service(api::game_handler::reset_game)
             .service(actix_files::Files::new("/static", "./static").show_files_listing())
