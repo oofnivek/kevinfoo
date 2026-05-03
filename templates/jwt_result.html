@@ -1,11 +1,37 @@
 <div class="box">
-    <h3 class="subtitle is-5 has-text-weight-bold mb-2">Header</h3>
-    <pre class="has-background-light p-3" style="border-radius: 4px;">{{header}}</pre>
+    <form hx-post="/jwt/mint" hx-target="#minted-token" hx-swap="innerHTML">
+        <div class="field">
+            <label class="label">Header (JSON)</label>
+            <div class="control">
+                <textarea class="textarea is-family-monospace" name="header" rows="4">{{header}}</textarea>
+            </div>
+        </div>
+
+        <div class="field mt-4">
+            <label class="label">Payload (JSON)</label>
+            <div class="control">
+                <textarea class="textarea is-family-monospace" name="payload" rows="8">{{payload}}</textarea>
+            </div>
+        </div>
+
+        <div class="field mt-4">
+            <label class="label">Signing Key (Secret)</label>
+            <div class="control">
+                <input class="input" type="text" name="secret" placeholder="Enter secret key to sign...">
+            </div>
+            <p class="help">Currently supports HS256 algorithm.</p>
+        </div>
+
+        <div class="field mt-5">
+            <div class="control">
+                <button type="submit" class="button is-info is-fullwidth">Mint & Sign JWT</button>
+            </div>
+        </div>
+    </form>
 </div>
 
-<div class="box mt-4">
-    <h3 class="subtitle is-5 has-text-weight-bold mb-2">Payload</h3>
-    <pre class="has-background-light p-3" style="border-radius: 4px;">{{payload}}</pre>
+<div id="minted-token" class="mt-4">
+    <!-- New token will appear here -->
 </div>
 
 {{#if error}}

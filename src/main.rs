@@ -53,6 +53,7 @@ async fn main() -> std::io::Result<()> {
             .service(api::note_handler::delete_note)
             .service(api::jwt_handler::jwt_index)
             .service(api::jwt_handler::decode_jwt)
+            .service(api::jwt_handler::mint_jwt)
             .service(actix_files::Files::new("/static", "./static").show_files_listing())
     })
     .bind(("0.0.0.0", 8080))?

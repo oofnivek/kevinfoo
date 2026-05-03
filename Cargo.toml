@@ -18,3 +18,6 @@ uuid = { version = "1.6", features = ["v4", "serde"] }
 log = "0.4"
 env_logger = "0.10"
 base64 = "0.21"
+jsonwebtoken = "9.2"
+hmac = "0.12"
+sha2 = "0.10"

@@ -5,25 +5,29 @@
         <div class="columns">
             <div class="column is-5">
                 <div class="box h-100">
-                    <label class="label">Encoded Token</label>
-                    <div class="field">
-                        <div class="control">
-                            <textarea class="textarea" 
-                                      name="token" 
-                                      placeholder="Paste your JWT here..." 
-                                      rows="15"
-                                      hx-post="/jwt/decode"
-                                      hx-trigger="keyup changed delay:200ms"
-                                      hx-target="#jwt-result"></textarea>
+                    <form hx-post="/jwt/decode" hx-target="#jwt-result">
+                        <label class="label">Encoded Token</label>
+                        <div class="field">
+                            <div class="control">
+                                <textarea class="textarea is-family-monospace" 
+                                          name="token" 
+                                          placeholder="Paste your JWT here..." 
+                                          rows="15"></textarea>
+                            </div>
                         </div>
-                    </div>
+                        <div class="field mt-4">
+                            <div class="control">
+                                <button type="submit" class="button is-link is-fullwidth">Decode JWT</button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
             
             <div class="column is-7">
                 <div id="jwt-result">
                     <div class="notification is-light">
-                        Paste a JWT on the left to start decoding.
+                        Paste a JWT on the left and click <strong>Decode</strong> to start.
                     </div>
                 </div>
             </div>
