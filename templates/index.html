@@ -3,36 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kevinfoo Task Manager</title>
+    <title>Note Manager</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <script src="https://unpkg.com/htmx.org@1.9.5"></script>
-    <style>
-        .completed {
-            text-decoration: line-through;
-            color: #ccc;
-        }
-    </style>
 </head>
-<body>
+<body class="has-background-light">
     <section class="section">
         <div class="container">
-            <h1 class="title">Kevinfoo Tasks</h1>
+            <h1 class="title has-text-centered mb-6">Note Manager</h1>
             
-            <div class="box">
-                <form hx-post="/tasks" hx-target="#task-list" hx-swap="innerHTML" hx-on::after-request="this.reset()">
-                    <div class="field has-addons">
-                        <div class="control is-expanded">
-                            <input class="input" type="text" name="title" placeholder="What needs to be done?" required>
-                        </div>
+            <div class="box" style="max-width: 800px; margin: 0 auto 2rem auto;">
+                <form hx-post="/notes" hx-target="#note-list" hx-swap="innerHTML" hx-on::after-request="this.reset()">
+                    <div class="field">
                         <div class="control">
-                            <button class="button is-primary" type="submit">Add Task</button>
+                            <textarea class="textarea" name="content" placeholder="Type your note here..." required rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="field mt-3">
+                        <div class="control has-text-right">
+                            <button class="button is-link" type="submit">Add Note</button>
                         </div>
                     </div>
                 </form>
             </div>
 
-            <div id="task-list">
-                {{> task_list}}
+            <div id="note-list" style="max-width: 800px; margin: 0 auto;">
+                {{> note_list}}
             </div>
         </div>
     </section>

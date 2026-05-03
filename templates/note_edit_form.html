@@ -1,0 +1,24 @@
+<div class="box mb-3" id="note-{{_id}}">
+    <form hx-put="/notes/{{_id}}" hx-target="#note-list" hx-swap="innerHTML">
+        <div class="field">
+            <div class="control">
+                <textarea class="textarea" name="content" required rows="3">{{content}}</textarea>
+            </div>
+        </div>
+        <div class="field is-grouped is-grouped-right mt-3">
+            <div class="control">
+                <button class="button is-small is-light" 
+                        hx-get="/" 
+                        hx-target="body" 
+                        hx-swap="outerHTML">
+                    Cancel
+                </button>
+            </div>
+            <div class="control">
+                <button type="submit" class="button is-small is-success">
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
