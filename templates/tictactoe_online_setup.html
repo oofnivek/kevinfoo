@@ -16,31 +16,89 @@
             </div>
         </div>
 
-        <div id="game-area" class="mt-6" style="display: none;" hx-ext="ws">
-            <div id="ws-container">
-                <!-- WebSocket connection will be initialized here -->
+        <div id="game-area" class="mt-6" style="display: none;">
+            <div id="board-wrapper">
+                <div class="notification is-info">Connecting...</div>
             </div>
         </div>
     </div>
 </section>
 
-<script src="https://unpkg.com/htmx.org/dist/ext/ws.js"></script>
-<script>
-    function joinRoom() {
-        const roomName = document.getElementById('room-input').value;
-        if (!roomName) return;
-        
-        const gameArea = document.getElementById('game-area');
-        const wsContainer = document.getElementById('ws-container');
-        
-        // Clear previous state if any
-        wsContainer.innerHTML = `<div hx-ws="connect:/tictactoe/ws/${roomName}">
-            <div id="online-board">
-                <div class="notification is-info">Connecting to room: ${roomName}...</div>
-            </div>
-        </div>`;
-        
-        gameArea.style.display = 'block';
-        htmx.process(wsContainer);
+<style>
+    .ttt-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        aspect-ratio: 1 / 1;
     }
+    .ttt-cell {
+        background: #fff;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.2s;
+        height: 140px;
+    }
+    .ttt-cell:hover:not(.is-occupied) {
+        background: #f5f5f5;
+    }
+    .ttt-cell.is-occupied {
+        cursor: default;
+    }
+    .ttt-cell.is-x { color: #3273dc; }
+    .ttt-cell.is-o { color: #ff3860; }
+</style>
+
+<script>
+let ws;
+
+function joinRoom() {
+    const roomName = document.getElementById('room-input').value.trim();
+    if (!roomName) return;
+
+    document.getElementById('game-area').style.display = 'block';
+    document.getElementById('board-wrapper').innerHTML = '<div class="notification is-info">Connecting to room: ' + roomName + '...</div>';
+
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(protocol + '//' + location.host + '/tictactoe/ws/' + roomName);
+
+    ws.onopen = function() {
+        console.log('[TTT] WebSocket connected');
+    };
+
+    ws.onmessage = function(event) {
+        console.log('[TTT] Received message:', event.data.length, 'bytes');
+        var wrapper = document.getElementById('board-wrapper');
+        if (wrapper) {
+            wrapper.innerHTML = event.data;
+        }
+    };
+
+    ws.onerror = function(e) {
+        console.error('[TTT] WebSocket error', e);
+        var wrapper = document.getElementById('board-wrapper');
+        if (wrapper) wrapper.innerHTML = '<div class="notification is-danger">Connection error!</div>';
+    };
+
+    ws.onclose = function() {
+        console.log('[TTT] WebSocket closed');
+    };
+}
+
+document.addEventListener('click', function(e) {
+    var cell = e.target.closest('[data-row]');
+    if (cell && ws && ws.readyState === WebSocket.OPEN) {
+        var msg = JSON.stringify({
+            row: parseInt(cell.dataset.row),
+            col: parseInt(cell.dataset.col)
+        });
+        console.log('[TTT] Sending move:', msg);
+        ws.send(msg);
+    }
+});
 </script>

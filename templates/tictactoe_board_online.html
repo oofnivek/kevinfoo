@@ -7,21 +7,24 @@
                 {{winner}}
             </div>
         {{else}}
-            {{#if is_your_turn}}
-                <div class="notification is-link is-light is-size-5">It's <strong>Your Turn!</strong></div>
+            {{#if waiting_for_opponent}}
+                <div class="notification is-warning is-light is-size-5">Waiting for Opponent to join...</div>
             {{else}}
-                <div class="notification is-warning is-light is-size-5">Waiting for Opponent ({{turn}})...</div>
+                {{#if is_your_turn}}
+                    <div class="notification is-link is-light is-size-5">It's <strong>Your Turn!</strong></div>
+                {{else}}
+                    <div class="notification is-warning is-light is-size-5">Waiting for Opponent ({{turn}}) to move...</div>
+                {{/if}}
             {{/if}}
         {{/if}}
     </div>
 
     <div class="ttt-grid">
         {{#each cells}}
-            <div class="ttt-cell {{#if is_occupied}}is-occupied is-{{symbol}}{{/if}}" 
+            <div class="ttt-cell {{#if is_occupied}}is-occupied is-{{symbol}}{{/if}}"
                  {{#if ../is_your_turn}}
                     {{#unless is_occupied}}
-                        hx-ws="send"
-                        hx-vals='{"row": {{row}}, "col": {{col}}}'
+                        data-row="{{row}}" data-col="{{col}}"
                     {{/unless}}
                  {{/if}}>
                 {{#if value}}{{value}}{{else}}&nbsp;{{/if}}
