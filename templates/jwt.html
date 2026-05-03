@@ -1,0 +1,32 @@
+<section class="section">
+    <div class="container" style="max-width: 1000px;">
+        <h1 class="title has-text-centered mb-6">JWT Decoder</h1>
+        
+        <div class="columns">
+            <div class="column is-5">
+                <div class="box h-100">
+                    <label class="label">Encoded Token</label>
+                    <div class="field">
+                        <div class="control">
+                            <textarea class="textarea" 
+                                      name="token" 
+                                      placeholder="Paste your JWT here..." 
+                                      rows="15"
+                                      hx-post="/jwt/decode"
+                                      hx-trigger="keyup changed delay:200ms"
+                                      hx-target="#jwt-result"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="column is-7">
+                <div id="jwt-result">
+                    <div class="notification is-light">
+                        Paste a JWT on the left to start decoding.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

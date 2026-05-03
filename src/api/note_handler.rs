@@ -5,13 +5,27 @@ use handlebars::Handlebars;
 use serde_json::json;
 
 #[get("/")]
-pub async fn index(hb: web::Data<Handlebars<'_>>, service: web::Data<NoteService>) -> impl Responder {
+pub async fn dashboard(hb: web::Data<Handlebars<'_>>) -> impl Responder {
+    let body = hb.render("dashboard", &json!({})).unwrap();
+    let html = hb.render("base", &json!({
+        "title": "Dashboard",
+        "body": body
+    })).unwrap();
+    HttpResponse::Ok().body(html)
+}
+
+#[get("/notes")]
+pub async fn note_index(hb: web::Data<Handlebars<'_>>, service: web::Data<NoteService>) -> impl Responder {
     let notes = service.get_notes().await.unwrap_or_default();
     let data = json!({
         "notes": notes
     });
-    let body = hb.render("index", &data).unwrap();
-    HttpResponse::Ok().body(body)
+    let body = hb.render("notes", &data).unwrap();
+    let html = hb.render("base", &json!({
+        "title": "Note Manager",
+        "body": body
+    })).unwrap();
+    HttpResponse::Ok().body(html)
 }
 
 #[post("/notes")]

@@ -1,0 +1,15 @@
+<div class="box">
+    <h3 class="subtitle is-5 has-text-weight-bold mb-2">Header</h3>
+    <pre class="has-background-light p-3" style="border-radius: 4px;">{{header}}</pre>
+</div>
+
+<div class="box mt-4">
+    <h3 class="subtitle is-5 has-text-weight-bold mb-2">Payload</h3>
+    <pre class="has-background-light p-3" style="border-radius: 4px;">{{payload}}</pre>
+</div>
+
+{{#if error}}
+<div class="notification is-danger is-light mt-4">
+    {{error}}
+</div>
+{{/if}}

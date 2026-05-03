@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}} - ToolBox</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <script src="https://unpkg.com/htmx.org@1.9.5"></script>
+    <style>
+        .navbar { border-bottom: 1px solid #ddd; }
+    </style>
+</head>
+<body class="has-background-light" style="min-height: 100vh;">
+    <nav class="navbar is-white mb-5" role="navigation" aria-label="main navigation">
+        <div class="container">
+            <div class="navbar-brand">
+                <a class="navbar-item has-text-weight-bold is-size-4" href="/">
+                    🚀 ToolBox
+                </a>
+            </div>
+            <div class="navbar-menu">
+                <div class="navbar-start">
+                    <a class="navbar-item" href="/notes">Notes</a>
+                    <a class="navbar-item" href="/jwt">JWT Decoder</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div id="content">
+        {{{body}}}
+    </div>
+</body>
+</html>
