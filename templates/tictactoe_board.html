@@ -1,0 +1,52 @@
+<div class="mb-5">
+    {{#if winner}}
+        <div class="notification is-success is-size-4 has-text-weight-bold">
+            {{winner}}
+        </div>
+    {{else}}
+        <div class="subtitle is-4">
+            Next Turn: <span class="has-text-weight-bold has-text-{{#if (eq turn "X")}}link{{else}}danger{{/if}}">{{turn}}</span>
+        </div>
+    {{/if}}
+</div>
+
+<div class="ttt-grid">
+    <div class="ttt-cell {{#if board.[0].[0]}}is-occupied is-{{#if (eq board.[0].[0] "X")}}x{{else}}o{{/if}}{{/if}}" 
+         hx-post="/tictactoe/move/0/0" hx-target="#game-board-container">
+        {{#if board.[0].[0]}}{{board.[0].[0]}}{{else}}&nbsp;{{/if}}
+    </div>
+    <div class="ttt-cell {{#if board.[0].[1]}}is-occupied is-{{#if (eq board.[0].[1] "X")}}x{{else}}o{{/if}}{{/if}}" 
+         hx-post="/tictactoe/move/0/1" hx-target="#game-board-container">
+        {{#if board.[0].[1]}}{{board.[0].[1]}}{{else}}&nbsp;{{/if}}
+    </div>
+    <div class="ttt-cell {{#if board.[0].[2]}}is-occupied is-{{#if (eq board.[0].[2] "X")}}x{{else}}o{{/if}}{{/if}}" 
+         hx-post="/tictactoe/move/0/2" hx-target="#game-board-container">
+        {{#if board.[0].[2]}}{{board.[0].[2]}}{{else}}&nbsp;{{/if}}
+    </div>
+
+    <div class="ttt-cell {{#if board.[1].[0]}}is-occupied is-{{#if (eq board.[1].[0] "X")}}x{{else}}o{{/if}}{{/if}}" 
+         hx-post="/tictactoe/move/1/0" hx-target="#game-board-container">
+        {{#if board.[1].[0]}}{{board.[1].[0]}}{{else}}&nbsp;{{/if}}
+    </div>
+    <div class="ttt-cell {{#if board.[1].[1]}}is-occupied is-{{#if (eq board.[1].[1] "X")}}x{{else}}o{{/if}}{{/if}}" 
+         hx-post="/tictactoe/move/1/1" hx-target="#game-board-container">
+        {{#if board.[1].[1]}}{{board.[1].[1]}}{{else}}&nbsp;{{/if}}
+    </div>
+    <div class="ttt-cell {{#if board.[1].[2]}}is-occupied is-{{#if (eq board.[1].[2] "X")}}x{{else}}o{{/if}}{{/if}}" 
+         hx-post="/tictactoe/move/1/2" hx-target="#game-board-container">
+        {{#if board.[1].[2]}}{{board.[1].[2]}}{{else}}&nbsp;{{/if}}
+    </div>
+
+    <div class="ttt-cell {{#if board.[2].[0]}}is-occupied is-{{#if (eq board.[2].[0] "X")}}x{{else}}o{{/if}}{{/if}}" 
+         hx-post="/tictactoe/move/2/0" hx-target="#game-board-container">
+        {{#if board.[2].[0]}}{{board.[2].[0]}}{{else}}&nbsp;{{/if}}
+    </div>
+    <div class="ttt-cell {{#if board.[2].[1]}}is-occupied is-{{#if (eq board.[2].[1] "X")}}x{{else}}o{{/if}}{{/if}}" 
+         hx-post="/tictactoe/move/2/1" hx-target="#game-board-container">
+        {{#if board.[2].[1]}}{{board.[2].[1]}}{{else}}&nbsp;{{/if}}
+    </div>
+    <div class="ttt-cell {{#if board.[2].[2]}}is-occupied is-{{#if (eq board.[2].[2] "X")}}x{{else}}o{{/if}}{{/if}}" 
+         hx-post="/tictactoe/move/2/2" hx-target="#game-board-container">
+        {{#if board.[2].[2]}}{{board.[2].[2]}}{{else}}&nbsp;{{/if}}
+    </div>
+</div>

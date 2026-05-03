@@ -33,3 +33,7 @@ This document outlines the architecture, tech stack, and coding standards for ou
 
 - **Platform**: The entire application will be hosted on **Render.com**.
 - **Blueprint Configuration**: A `render.yaml` Blueprint file is REQUIRED at the root of the repository to define the infrastructure as code. Ensure all environment variables, build commands, start commands, and service definitions (including database connection strings) are correctly specified in this blueprint.
+
+## 5. Local Development & Workflow
+
+- **Execution Rule**: AI agents MUST NOT automatically execute the `run.sh` script or start the application server at the end of their task. The USER will handle starting and stopping the application manually. Agents should focus on generating, modifying, and validating code (e.g., via `cargo check`).

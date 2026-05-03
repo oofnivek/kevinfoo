@@ -1,0 +1,45 @@
+<section class="section">
+    <div class="container has-text-centered" style="max-width: 500px;">
+        <h1 class="title mb-6">Tic Tac Toe Hotseat</h1>
+        
+        <div id="game-board-container">
+            {{> tictactoe_board}}
+        </div>
+
+        <div class="mt-6">
+            <button class="button is-warning" hx-post="/tictactoe/reset" hx-target="#game-board-container">
+                Reset Game
+            </button>
+        </div>
+    </div>
+</section>
+
+<style>
+    .ttt-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        aspect-ratio: 1 / 1;
+    }
+    .ttt-cell {
+        background: #fff;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.2s;
+        height: 140px; /* Fixed height to prevent collapse */
+    }
+    .ttt-cell:hover:not(.is-occupied) {
+        background: #f5f5f5;
+    }
+    .ttt-cell.is-occupied {
+        cursor: default;
+    }
+    .ttt-cell.is-x { color: #3273dc; }
+    .ttt-cell.is-o { color: #ff3860; }
+</style>
