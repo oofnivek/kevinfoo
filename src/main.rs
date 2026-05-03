@@ -19,6 +19,11 @@ async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
+    // Ensure static directory exists
+    if !std::path::Path::new("./static").exists() {
+        std::fs::create_dir("./static").expect("Failed to create static directory");
+    }
+
     let mongo_uri = env::var("MONGODB_URI").expect("MONGODB_URI must be set");
     let client_options = ClientOptions::parse(mongo_uri).await.expect("Failed to parse MongoDB URI");
     let client = Client::with_options(client_options).expect("Failed to create MongoDB client");
