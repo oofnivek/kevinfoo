@@ -4,7 +4,8 @@
         
         {{#if winner}}
             <div class="notification is-success is-size-4 has-text-weight-bold">
-                {{winner}}
+                <div class="mb-4">{{winner}}</div>
+                <button class="button is-white is-outlined" data-action="restart">Restart Game</button>
             </div>
         {{else}}
             {{#if waiting_for_opponent}}

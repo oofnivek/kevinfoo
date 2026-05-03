@@ -55,10 +55,10 @@ pub async fn game_ws(
 ) -> Result<HttpResponse, actix_web::Error> {
     let room_id = path.into_inner();
     let player_id = Uuid::new_v4().to_string();
-    log::info!("[WS] New connection request: room={} player_id={}", room_id, player_id);
+    log::debug!("[WS] New connection request: room={} player_id={}", room_id, player_id);
 
     let (res, session, mut msg_stream) = actix_ws::handle(&req, stream)?;
-    log::info!("[WS] Handshake complete: room={} player_id={}", room_id, player_id);
+    log::debug!("[WS] Handshake complete: room={} player_id={}", room_id, player_id);
 
     let session_clone = session.clone();
     let server_clone = server.clone();
@@ -68,14 +68,14 @@ pub async fn game_ws(
 
     actix_web::rt::spawn(async move {
         // --- JOIN ROOM ---
-        log::info!("[WS] Spawned task: acquiring lock to join room={} player_id={}", room_id_clone, player_id_clone);
+        log::debug!("[WS] Spawned task: acquiring lock to join room={} player_id={}", room_id_clone, player_id_clone);
 
         let player_type = {
             let mut rooms = server_clone.rooms.lock().unwrap();
-            log::info!("[WS] Lock acquired for room={} player_id={}", room_id_clone, player_id_clone);
+            log::debug!("[WS] Lock acquired for room={} player_id={}", room_id_clone, player_id_clone);
 
             let room = rooms.entry(room_id_clone.clone()).or_insert_with(|| {
-                log::info!("[WS] Creating new room={}", room_id_clone);
+                log::debug!("[WS] Creating new room={}", room_id_clone);
                 Room {
                     id: room_id_clone.clone(),
                     state: GameState::default(),
@@ -83,7 +83,7 @@ pub async fn game_ws(
                 }
             });
 
-            log::info!("[WS] Room={} currently has {} player(s)", room_id_clone, room.players.len());
+            log::debug!("[WS] Room={} currently has {} player(s)", room_id_clone, room.players.len());
 
             if room.players.len() >= 2 {
                 log::warn!("[WS] Room={} is full! Rejecting player_id={}", room_id_clone, player_id_clone);
@@ -94,7 +94,7 @@ pub async fn game_ws(
             }
 
             let p_type = if room.players.is_empty() { Player::X } else { Player::O };
-            log::info!("[WS] Assigning player_id={} as {:?} in room={}", player_id_clone, p_type.symbol(), room_id_clone);
+            log::debug!("[WS] Assigning player_id={} as {:?} in room={}", player_id_clone, p_type.symbol(), room_id_clone);
 
             room.players.push(PlayerSession {
                 id: player_id_clone.clone(),
@@ -102,87 +102,154 @@ pub async fn game_ws(
                 ws_session: session_clone.clone(),
             });
 
-            log::info!("[WS] Room={} now has {} player(s). Releasing lock.", room_id_clone, room.players.len());
+            if room.players.len() == 2 {
+                use rand::Rng;
+                let mut rng = rand::thread_rng();
+                room.state.current_turn = if rng.gen_bool(0.5) { Player::X } else { Player::O };
+                log::debug!("[WS] Second player joined. Randomly selected starting turn: {:?}", room.state.current_turn.symbol());
+            }
+
+            log::debug!("[WS] Room={} now has {} player(s). Releasing lock.", room_id_clone, room.players.len());
             p_type
             // lock drops here
         };
 
-        log::info!("[WS] Lock released. Sending initial state to room={}", room_id_clone);
+        log::debug!("[WS] Lock released. Sending initial state to room={}", room_id_clone);
 
         // --- SEND INITIAL STATE (lock released, safe to await) ---
         {
             let outgoing = collect_outgoing(&server_clone, &room_id_clone, &hb_clone);
-            log::info!("[WS] Initial broadcast: {} message(s) queued for room={}", outgoing.len(), room_id_clone);
+            log::debug!("[WS] Initial broadcast: {} message(s) queued for room={}", outgoing.len(), room_id_clone);
             send_all(outgoing).await;
-            log::info!("[WS] Initial broadcast sent for room={}", room_id_clone);
+            log::debug!("[WS] Initial broadcast sent for room={}", room_id_clone);
         }
 
-        // --- MESSAGE LOOP ---
-        log::info!("[WS] Entering message loop: room={} player={:?}", room_id_clone, player_type.symbol());
-        while let Some(Ok(msg)) = msg_stream.next().await {
-            match msg {
-                Message::Text(text) => {
-                    log::info!("[WS] Message received in room={} from {:?}: {}", room_id_clone, player_type.symbol(), text);
-                    if let Ok(data) = serde_json::from_str::<serde_json::Value>(&text) {
-                        if let (Some(r), Some(c)) = (
-                            data.get("row").and_then(|v| v.as_u64()),
-                            data.get("col").and_then(|v| v.as_u64()),
-                        ) {
-                            log::info!("[WS] Move attempt: room={} player={:?} row={} col={}", room_id_clone, player_type.symbol(), r, c);
+        // --- HEARTBEAT SETUP ---
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(20));
+        log::debug!("[WS] Entering message loop with heartbeat: room={} player={:?}", room_id_clone, player_type.symbol());
 
-                            let moved = {
-                                let mut rooms = server_clone.rooms.lock().unwrap();
-                                if let Some(room) = rooms.get_mut(&room_id_clone) {
-                                    let player_count = room.players.len();
-                                    let current_turn = room.state.current_turn.symbol();
-                                    log::info!("[WS] Move check: room={} players={} current_turn={} mover={:?}", room_id_clone, player_count, current_turn, player_type.symbol());
-                                    if player_count == 2 && room.state.current_turn == player_type {
-                                        let result = room.state.make_move(r as usize, c as usize);
-                                        log::info!("[WS] make_move result={} for room={}", result, room_id_clone);
-                                        result
-                                    } else {
-                                        log::warn!("[WS] Move rejected: not player's turn or room not full. room={}", room_id_clone);
-                                        false
-                                    }
-                                } else {
-                                    log::warn!("[WS] Move rejected: room={} not found", room_id_clone);
-                                    false
-                                }
-                                // lock drops here
-                            };
-
-                            if moved {
-                                let outgoing = collect_outgoing(&server_clone, &room_id_clone, &hb_clone);
-                                log::info!("[WS] Post-move broadcast: {} message(s) for room={}", outgoing.len(), room_id_clone);
-                                send_all(outgoing).await;
-                            }
-                        } else {
-                            log::warn!("[WS] Could not parse row/col from message in room={}: {}", room_id_clone, text);
-                        }
-                    } else {
-                        log::warn!("[WS] Non-JSON message in room={}: {}", room_id_clone, text);
+        loop {
+            tokio::select! {
+                _ = interval.tick() => {
+                    log::debug!("[WS] Sending heartbeat ping: room={} player_id={}", room_id_clone, player_id_clone);
+                    let mut s = session_clone.clone();
+                    if let Err(e) = s.ping(b"").await {
+                        log::warn!("[WS] Heartbeat ping failed: {:?}. room={} player_id={}", e, room_id_clone, player_id_clone);
+                        break;
                     }
                 }
-                Message::Close(reason) => {
-                    log::info!("[WS] Close message received: room={} player={:?} reason={:?}", room_id_clone, player_type.symbol(), reason);
-                    break;
+                msg = msg_stream.next() => {
+                    let msg = match msg {
+                        Some(Ok(m)) => m,
+                        Some(Err(e)) => {
+                            log::warn!("[WS] Stream error: {:?}. room={} player_id={}", e, room_id_clone, player_id_clone);
+                            break;
+                        }
+                        None => {
+                            log::debug!("[WS] Stream ended. room={} player_id={}", room_id_clone, player_id_clone);
+                            break;
+                        }
+                    };
+
+                    match msg {
+                        Message::Text(text) => {
+                            log::debug!("[WS] Message received in room={} from {:?}: {}", room_id_clone, player_type.symbol(), text);
+                            if let Ok(data) = serde_json::from_str::<serde_json::Value>(&text) {
+                                if let (Some(r), Some(c)) = (
+                                    data.get("row").and_then(|v| v.as_u64()),
+                                    data.get("col").and_then(|v| v.as_u64()),
+                                ) {
+                                    log::debug!("[WS] Move attempt: room={} player={:?} row={} col={}", room_id_clone, player_type.symbol(), r, c);
+
+                                    let moved = {
+                                        let mut rooms = server_clone.rooms.lock().unwrap();
+                                        if let Some(room) = rooms.get_mut(&room_id_clone) {
+                                            let player_count = room.players.len();
+                                            let current_turn = room.state.current_turn.symbol();
+                                            log::debug!("[WS] Move check: room={} players={} current_turn={} mover={:?}", room_id_clone, player_count, current_turn, player_type.symbol());
+                                            if player_count == 2 && room.state.current_turn == player_type {
+                                                let result = room.state.make_move(r as usize, c as usize);
+                                                log::debug!("[WS] make_move result={} for room={}", result, room_id_clone);
+                                                result
+                                            } else {
+                                                log::warn!("[WS] Move rejected: not player's turn or room not full. room={}", room_id_clone);
+                                                false
+                                            }
+                                        } else {
+                                            log::warn!("[WS] Move rejected: room={} not found", room_id_clone);
+                                            false
+                                        }
+                                        // lock drops here
+                                    };
+
+                                    if moved {
+                                        let outgoing = collect_outgoing(&server_clone, &room_id_clone, &hb_clone);
+                                        log::debug!("[WS] Post-move broadcast: {} message(s) for room={}", outgoing.len(), room_id_clone);
+                                        send_all(outgoing).await;
+                                    }
+                                } else if let Some(action) = data.get("action").and_then(|v| v.as_str()) {
+                                    if action == "restart" {
+                                        log::debug!("[WS] Restart request: room={}", room_id_clone);
+                                        {
+                                            let mut rooms = server_clone.rooms.lock().unwrap();
+                                            if let Some(room) = rooms.get_mut(&room_id_clone) {
+                                                room.state = GameState::default();
+                                                use rand::Rng;
+                                                let mut rng = rand::thread_rng();
+                                                room.state.current_turn = if rng.gen_bool(0.5) { Player::X } else { Player::O };
+                                                log::debug!("[WS] Room={} state reset with random turn: {:?}.", room_id_clone, room.state.current_turn.symbol());
+                                            }
+                                        }
+                                        let outgoing = collect_outgoing(&server_clone, &room_id_clone, &hb_clone);
+                                        send_all(outgoing).await;
+                                    }
+                                } else {
+                                    log::warn!("[WS] Could not parse action or row/col from message in room={}: {}", room_id_clone, text);
+                                }
+                            } else {
+                                log::warn!("[WS] Non-JSON message in room={}: {}", room_id_clone, text);
+                            }
+                        }
+                        Message::Close(reason) => {
+                            log::debug!("[WS] Close message received: room={} player={:?} reason={:?}", room_id_clone, player_type.symbol(), reason);
+                            break;
+                        }
+                        Message::Ping(bytes) => {
+                            let mut s = session_clone.clone();
+                            let _ = s.pong(&bytes).await;
+                        }
+                        Message::Pong(_) => {
+                            log::debug!("[WS] Pong received: room={}", room_id_clone);
+                        }
+                        _ => (),
+                    }
                 }
-                Message::Ping(_) => {
-                    log::debug!("[WS] Ping received: room={}", room_id_clone);
-                }
-                _ => (),
             }
         }
 
         // --- CLEANUP ---
-        log::info!("[WS] Cleaning up: removing player_id={} from room={}", player_id_clone, room_id_clone);
-        let mut rooms = server_clone.rooms.lock().unwrap();
-        if let Some(room) = rooms.get_mut(&room_id_clone) {
-            room.players.retain(|p| p.id != player_id_clone);
-            log::info!("[WS] Room={} now has {} player(s) after cleanup", room_id_clone, room.players.len());
-            if room.players.is_empty() {
+        log::debug!("[WS] Cleaning up: removing player_id={} from room={}", player_id_clone, room_id_clone);
+        {
+            let mut rooms = server_clone.rooms.lock().unwrap();
+            if let Some(room) = rooms.get_mut(&room_id_clone) {
+                // If any player leaves, we end the game for everyone in this room.
+                // We'll collect remaining sessions to close them outside the lock.
+                let mut remaining_sessions = Vec::new();
+                for p in &room.players {
+                    if p.id != player_id_clone {
+                        remaining_sessions.push(p.ws_session.clone());
+                    }
+                }
+                
+                log::debug!("[WS] Room={} ending because a player left. Disconnecting {} remaining player(s).", room_id_clone, remaining_sessions.len());
+                
+                // Remove the room entirely
                 rooms.remove(&room_id_clone);
-                log::info!("[WS] Room={} removed (empty)", room_id_clone);
+                
+                // Close remaining sessions
+                for session in remaining_sessions {
+                    let _ = session.clone().close(None).await;
+                }
             }
         }
     });
@@ -220,7 +287,7 @@ fn collect_outgoing(
     }
 
     let waiting_for_opponent = room.players.len() < 2;
-    log::info!("[WS] collect_outgoing: room={} players={} waiting={}", room_id, room.players.len(), waiting_for_opponent);
+    log::debug!("[WS] collect_outgoing: room={} players={} waiting={}", room_id, room.players.len(), waiting_for_opponent);
 
     let mut outgoing = Vec::new();
     for player in &room.players {
@@ -238,7 +305,7 @@ fn collect_outgoing(
             "room_id": room.id
         })).unwrap_or_default();
 
-        log::info!("[WS] Queuing message for player={:?} is_your_turn={} waiting={}", player.player_type.symbol(), is_your_turn, waiting_for_opponent);
+        log::debug!("[WS] Queuing message for player={:?} is_your_turn={} waiting={}", player.player_type.symbol(), is_your_turn, waiting_for_opponent);
         outgoing.push((player.ws_session.clone(), body));
     }
     outgoing
@@ -248,9 +315,9 @@ fn collect_outgoing(
 /// Send all outgoing messages asynchronously AFTER lock has been released.
 async fn send_all(outgoing: Vec<(Session, String)>) {
     for (mut session, body) in outgoing {
-        log::info!("[WS] Sending {} bytes via ws", body.len());
+        log::debug!("[WS] Sending {} bytes via ws", body.len());
         match session.text(body).await {
-            Ok(_) => log::info!("[WS] Send OK"),
+            Ok(_) => log::debug!("[WS] Send OK"),
             Err(e) => log::warn!("[WS] Send error: {:?}", e),
         }
     }

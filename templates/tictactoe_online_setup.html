@@ -2,7 +2,7 @@
     <div class="container has-text-centered" style="max-width: 500px;">
         <h1 class="title mb-6">Tic Tac Toe Online</h1>
         
-        <div class="box">
+        <div id="setup-box" class="box">
             <div class="field">
                 <label class="label">Room Name</label>
                 <div class="control">
@@ -17,6 +17,9 @@
         </div>
 
         <div id="game-area" class="mt-6" style="display: none;">
+            <div class="mb-5">
+                <button class="button is-danger is-light" onclick="leaveRoom()">Leave Room</button>
+            </div>
             <div id="board-wrapper">
                 <div class="notification is-info">Connecting...</div>
             </div>
@@ -61,6 +64,7 @@ function joinRoom() {
     const roomName = document.getElementById('room-input').value.trim();
     if (!roomName) return;
 
+    document.getElementById('setup-box').style.display = 'none';
     document.getElementById('game-area').style.display = 'block';
     document.getElementById('board-wrapper').innerHTML = '<div class="notification is-info">Connecting to room: ' + roomName + '...</div>';
 
@@ -87,10 +91,21 @@ function joinRoom() {
 
     ws.onclose = function() {
         console.log('[TTT] WebSocket closed');
+        leaveRoom();
     };
 }
 
+function leaveRoom() {
+    if (ws) {
+        ws.close();
+        ws = null;
+    }
+    document.getElementById('setup-box').style.display = 'block';
+    document.getElementById('game-area').style.display = 'none';
+}
+
 document.addEventListener('click', function(e) {
+    // Handle cell clicks
     var cell = e.target.closest('[data-row]');
     if (cell && ws && ws.readyState === WebSocket.OPEN) {
         var msg = JSON.stringify({
@@ -98,6 +113,17 @@ document.addEventListener('click', function(e) {
             col: parseInt(cell.dataset.col)
         });
         console.log('[TTT] Sending move:', msg);
+        ws.send(msg);
+        return;
+    }
+
+    // Handle restart button clicks
+    var restartBtn = e.target.closest('[data-action="restart"]');
+    if (restartBtn && ws && ws.readyState === WebSocket.OPEN) {
+        var msg = JSON.stringify({
+            action: 'restart'
+        });
+        console.log('[TTT] Sending restart request');
         ws.send(msg);
     }
 });
