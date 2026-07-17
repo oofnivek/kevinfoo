@@ -28,6 +28,10 @@ services:
         sync: false
       - key: SESSION_SECRET
         generateValue: true
+      - key: RECAPTCHA_SITE_KEY
+        sync: false
+      - key: RECAPTCHA_SECRET_KEY
+        sync: false
     disk:
       name: bookmarks-data
       mountPath: /data

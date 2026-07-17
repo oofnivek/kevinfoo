@@ -59,7 +59,7 @@ func run(logger *slog.Logger) error {
 	}
 
 	session := auth.New(sessionSecret)
-	authHandler := auth.NewHandler(session, cfg.AuthUsername, cfg.AuthPassword, renderer, logger)
+	authHandler := auth.NewHandler(session, cfg.AuthUsername, cfg.AuthPassword, cfg.RecaptchaSiteKey, cfg.RecaptchaSecretKey, renderer, logger)
 
 	mux := server.NewMux(handler, authHandler, session.Middleware, session.Valid, renderer, ping, "web/static", logger)
 

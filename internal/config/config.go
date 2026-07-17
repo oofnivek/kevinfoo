@@ -28,6 +28,10 @@ type Config struct {
 	AuthUsername  string
 	AuthPassword  string
 	SessionSecret string
+
+	// Google reCAPTCHA v2 checkbox on the login page.
+	RecaptchaSiteKey   string
+	RecaptchaSecretKey string
 }
 
 func Load() Config {
@@ -49,6 +53,9 @@ func Load() Config {
 		AuthUsername:  getEnv("AUTH_USERNAME", ""),
 		AuthPassword:  getEnv("AUTH_PASSWORD", ""),
 		SessionSecret: getEnv("SESSION_SECRET", ""),
+
+		RecaptchaSiteKey:   getEnv("RECAPTCHA_SITE_KEY", ""),
+		RecaptchaSecretKey: getEnv("RECAPTCHA_SECRET_KEY", ""),
 	}
 }
 

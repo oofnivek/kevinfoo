@@ -16,7 +16,7 @@ import (
 
 const (
 	cookieName = "session"
-	sessionTTL = 7 * 24 * time.Hour
+	sessionTTL = 4 * 7 * 24 * time.Hour
 )
 
 type Session struct {

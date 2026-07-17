@@ -1,11 +1,14 @@
 package auth
 
 import (
+	"encoding/json"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 // Renderer renders a named template to w.
@@ -14,17 +17,23 @@ type Renderer interface {
 }
 
 type Handler struct {
-	session  *Session
-	username string
-	password string
-	render   func(w http.ResponseWriter, name string, data any)
+	session         *Session
+	username        string
+	password        string
+	recaptchaSite   string
+	recaptchaSecret string
+	httpClient      *http.Client
+	render          func(w http.ResponseWriter, name string, data any)
 }
 
-func NewHandler(session *Session, username, password string, r Renderer, logger *slog.Logger) *Handler {
+func NewHandler(session *Session, username, password, recaptchaSiteKey, recaptchaSecretKey string, r Renderer, logger *slog.Logger) *Handler {
 	return &Handler{
-		session:  session,
-		username: username,
-		password: password,
+		session:         session,
+		username:        username,
+		password:        password,
+		recaptchaSite:   recaptchaSiteKey,
+		recaptchaSecret: recaptchaSecretKey,
+		httpClient:      &http.Client{Timeout: 10 * time.Second},
 		render: func(w http.ResponseWriter, name string, data any) {
 			if err := r.Render(w, name, data); err != nil {
 				logger.Error("render template", "template", name, "error", err)
@@ -40,7 +49,8 @@ func (h *Handler) LoginForm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, "login", map[string]any{
-		"Next": safeNext(r.URL.Query().Get("next")),
+		"Next":          safeNext(r.URL.Query().Get("next")),
+		"RecaptchaSite": h.recaptchaSite,
 	})
 }
 
@@ -54,16 +64,57 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	password := r.PostForm.Get("password")
 	next := safeNext(r.PostForm.Get("next"))
 
+	if h.recaptchaSecret != "" && !h.verifyRecaptcha(r.PostForm.Get("g-recaptcha-response"), r.RemoteAddr) {
+		h.render(w, "login", map[string]any{
+			"Next":          next,
+			"RecaptchaSite": h.recaptchaSite,
+			"Error":         "Please complete the reCAPTCHA.",
+		})
+		return
+	}
+
 	if !CheckCredentials(username, password, h.username, h.password) {
 		h.render(w, "login", map[string]any{
-			"Next":  next,
-			"Error": "Invalid username or password.",
+			"Next":          next,
+			"RecaptchaSite": h.recaptchaSite,
+			"Error":         "Invalid username or password.",
 		})
 		return
 	}
 
 	h.session.IssueCookie(w, r)
 	http.Redirect(w, r, next, http.StatusSeeOther)
+}
+
+// verifyRecaptcha checks a reCAPTCHA v2 response token against Google's
+// siteverify endpoint.
+func (h *Handler) verifyRecaptcha(token, remoteAddr string) bool {
+	if token == "" {
+		return false
+	}
+
+	form := url.Values{
+		"secret":   {h.recaptchaSecret},
+		"response": {token},
+	}
+	if ip, _, err := net.SplitHostPort(remoteAddr); err == nil {
+		form.Set("remoteip", ip)
+	}
+
+	resp, err := h.httpClient.PostForm("https://www.google.com/recaptcha/api/siteverify", form)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		Success bool `json:"success"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return false
+	}
+
+	return result.Success
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {

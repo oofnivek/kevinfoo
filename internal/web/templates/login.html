@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Log in</title>
     <link rel="stylesheet" href="/static/css/output.css">
+    {{if .RecaptchaSite}}
+        <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    {{end}}
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-900">
     <div class="mx-auto max-w-sm px-4 py-16">
@@ -42,6 +45,10 @@
                     class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
                 >
             </div>
+
+            {{if .RecaptchaSite}}
+                <div class="g-recaptcha" data-sitekey="{{.RecaptchaSite}}"></div>
+            {{end}}
 
             <button type="submit" class="w-full rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700">
                 Log in
