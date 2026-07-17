@@ -49,7 +49,7 @@ func run(logger *slog.Logger) error {
 	svc := bookmark.NewService(repo)
 	handler := bookmark.NewHandler(svc, renderer, logger)
 
-	mux := server.NewMux(handler, db, "web/static")
+	mux := server.NewMux(handler, renderer, db, "web/static", logger)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,

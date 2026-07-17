@@ -1,4 +1,4 @@
-{{define "index"}}
+{{define "bookmarks-page"}}
 <!doctype html>
 <html lang="en">
 <head>
@@ -10,6 +10,7 @@
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-900">
     <div class="mx-auto max-w-3xl px-4 py-10">
+        <a href="/" class="mb-4 inline-block text-sm text-slate-500 hover:underline">&larr; Home</a>
         <header class="mb-8 flex items-center justify-between">
             <h1 class="text-2xl font-semibold tracking-tight">Bookmarks</h1>
             <button
@@ -27,9 +28,10 @@
         <input
             type="search"
             name="q"
+            autocomplete="off"
             placeholder="Search bookmarks..."
             class="mb-6 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-            hx-get="/bookmarks"
+            hx-get="/bookmarks/list"
             hx-trigger="keyup changed delay:300ms, search"
             hx-target="#bookmark-list"
             hx-swap="outerHTML"

@@ -45,13 +45,13 @@ type formData struct {
 	Error       string
 }
 
-func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Page(w http.ResponseWriter, r *http.Request) {
 	bookmarks, err := h.svc.List(r.Context(), r.URL.Query().Get("q"))
 	if err != nil {
 		h.serverError(w, err)
 		return
 	}
-	h.render(w, "index", map[string]any{"Bookmarks": bookmarks})
+	h.render(w, "bookmarks-page", map[string]any{"Bookmarks": bookmarks})
 }
 
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
