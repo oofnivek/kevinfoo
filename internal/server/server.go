@@ -2,15 +2,18 @@
 package server
 
 import (
+	"database/sql"
 	"net/http"
 
 	"bookmarks/internal/bookmark"
 )
 
-func NewMux(bookmarks *bookmark.Handler, staticDir string) *http.ServeMux {
+func NewMux(bookmarks *bookmark.Handler, db *sql.DB, staticDir string) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
+
+	mux.HandleFunc("GET /healthz", healthCheck(db))
 
 	mux.HandleFunc("GET /{$}", bookmarks.Index)
 
@@ -24,4 +27,15 @@ func NewMux(bookmarks *bookmark.Handler, staticDir string) *http.ServeMux {
 	mux.HandleFunc("DELETE /bookmarks/{id}", bookmarks.Delete)
 
 	return mux
+}
+
+func healthCheck(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := db.PingContext(r.Context()); err != nil {
+			http.Error(w, "database unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	}
 }

@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: bookmarks
+    runtime: docker
+    plan: starter
+    region: oregon
+    healthCheckPath: /healthz
+    envVars:
+      - key: DB_PATH
+        value: /data/bookmarks.db
+      - key: PORT
+        value: 8080
+    disk:
+      name: bookmarks-data
+      mountPath: /data
+      sizeGB: 1

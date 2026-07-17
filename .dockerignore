@@ -1,0 +1,10 @@
+.git
+.claude
+.env
+node_modules
+data
+bin
+web/static/css/output.css
+*.db
+coverage.out
+README.md
