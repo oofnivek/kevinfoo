@@ -1,0 +1,35 @@
+{{define "bookmark-row"}}
+<li id="bookmark-{{.ID}}" class="flex items-start justify-between gap-4 px-4 py-3">
+    <div class="min-w-0">
+        <a href="{{.URL}}" target="_blank" rel="noopener noreferrer" class="truncate text-sm font-medium text-slate-900 hover:underline">
+            {{.Title}}
+        </a>
+        <p class="truncate text-xs text-slate-500">{{.URL}}</p>
+        {{if .Description}}
+            <p class="mt-1 text-sm text-slate-600">{{.Description}}</p>
+        {{end}}
+        {{if .Tags}}
+            <p class="mt-1 text-xs text-slate-400">{{.Tags}}</p>
+        {{end}}
+    </div>
+    <div class="flex shrink-0 gap-2">
+        <button
+            class="rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100"
+            hx-get="/bookmarks/{{.ID}}/edit"
+            hx-target="#bookmark-{{.ID}}"
+            hx-swap="outerHTML"
+        >
+            Edit
+        </button>
+        <button
+            class="rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+            hx-delete="/bookmarks/{{.ID}}"
+            hx-target="#bookmark-{{.ID}}"
+            hx-swap="outerHTML swap:200ms"
+            hx-confirm="Delete this bookmark?"
+        >
+            Delete
+        </button>
+    </div>
+</li>
+{{end}}

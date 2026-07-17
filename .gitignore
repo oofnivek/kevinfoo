@@ -1,0 +1,9 @@
+/bin/
+/data/
+/node_modules/
+/.claude/
+*.db
+.env
+web/static/css/output.css
+coverage.out
+.DS_Store
