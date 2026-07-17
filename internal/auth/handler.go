@@ -4,6 +4,8 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
+	"strings"
 )
 
 // Renderer renders a named template to w.
@@ -70,10 +72,24 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 // safeNext only allows same-site relative redirect targets, guarding
-// against the "next" parameter being used as an open redirect.
+// against the "next" parameter being used as an open redirect. Backslashes
+// are rejected outright: browsers treat "\" the same as "/" for http(s)
+// URLs (per the WHATWG URL spec), so "/\evil.com" resolves the same way
+// "//evil.com" does even though it doesn't look protocol-relative here.
 func safeNext(next string) string {
-	if next == "" || next[0] != '/' || len(next) > 1 && next[1] == '/' {
-		return "/bookmarks"
+	const fallback = "/bookmarks"
+
+	if next == "" || strings.ContainsRune(next, '\\') {
+		return fallback
 	}
+
+	u, err := url.Parse(next)
+	if err != nil || u.Host != "" || u.Scheme != "" || u.Opaque != "" {
+		return fallback
+	}
+	if !strings.HasPrefix(u.Path, "/") || strings.HasPrefix(u.Path, "//") {
+		return fallback
+	}
+
 	return next
 }

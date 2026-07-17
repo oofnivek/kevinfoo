@@ -37,10 +37,21 @@ func (s *Session) IssueCookie(w http.ResponseWriter, r *http.Request) {
 		Value:    value,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   r.TLS != nil,
+		Secure:   isHTTPS(r),
 		SameSite: http.SameSiteLaxMode,
 		Expires:  time.Unix(expiry, 0),
 	})
+}
+
+// isHTTPS reports whether the original client request used HTTPS. r.TLS is
+// checked for direct TLS termination, but behind a reverse proxy (Render,
+// most PaaS) TLS is terminated at the edge and the app only sees plain HTTP,
+// so the proxy's X-Forwarded-Proto header is also trusted.
+func isHTTPS(r *http.Request) bool {
+	if r.TLS != nil {
+		return true
+	}
+	return strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https")
 }
 
 // ClearCookie removes the session cookie.
