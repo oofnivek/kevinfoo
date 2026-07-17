@@ -22,7 +22,7 @@ type AuthHandler interface {
 	Logout(w http.ResponseWriter, r *http.Request)
 }
 
-func NewMux(bookmarks *bookmark.Handler, auth AuthHandler, protect func(http.Handler) http.Handler, renderer Renderer, ping func(context.Context) error, staticDir string, logger *slog.Logger) *http.ServeMux {
+func NewMux(bookmarks *bookmark.Handler, auth AuthHandler, protect func(http.Handler) http.Handler, authed func(*http.Request) bool, renderer Renderer, ping func(context.Context) error, staticDir string, logger *slog.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
@@ -33,7 +33,8 @@ func NewMux(bookmarks *bookmark.Handler, auth AuthHandler, protect func(http.Han
 	mux.HandleFunc("POST /login", auth.Login)
 	mux.HandleFunc("POST /logout", auth.Logout)
 
-	mux.Handle("GET /{$}", protect(homePage(renderer, logger)))
+	mux.HandleFunc("GET /{$}", homePage(renderer, logger, authed))
+	mux.HandleFunc("GET /jwt-decoder", toolPage(renderer, logger, "jwt-decoder"))
 
 	mux.Handle("GET /bookmarks", protect(http.HandlerFunc(bookmarks.Page)))
 	mux.Handle("GET /bookmarks/list", protect(http.HandlerFunc(bookmarks.List)))
@@ -48,10 +49,19 @@ func NewMux(bookmarks *bookmark.Handler, auth AuthHandler, protect func(http.Han
 	return mux
 }
 
-func homePage(renderer Renderer, logger *slog.Logger) http.HandlerFunc {
+func homePage(renderer Renderer, logger *slog.Logger, authed func(*http.Request) bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if err := renderer.Render(w, "home", nil); err != nil {
+		data := map[string]any{"LoggedIn": authed(r)}
+		if err := renderer.Render(w, "home", data); err != nil {
 			logger.Error("render template", "template", "home", "error", err)
+		}
+	}
+}
+
+func toolPage(renderer Renderer, logger *slog.Logger, name string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := renderer.Render(w, name, nil); err != nil {
+			logger.Error("render template", "template", name, "error", err)
 		}
 	}
 }

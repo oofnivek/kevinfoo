@@ -10,9 +10,13 @@
 <body class="min-h-screen bg-slate-50 text-slate-900">
     <div class="mx-auto max-w-3xl px-4 py-10">
         <div class="mb-4 flex justify-end">
-            <form method="post" action="/logout">
-                <button type="submit" class="text-sm text-slate-500 hover:underline">Log out</button>
-            </form>
+            {{if .LoggedIn}}
+                <form method="post" action="/logout">
+                    <button type="submit" class="text-sm text-slate-500 hover:underline">Log out</button>
+                </form>
+            {{else}}
+                <a href="/login" class="text-sm text-slate-500 hover:underline">Log in</a>
+            {{end}}
         </div>
         <h1 class="text-2xl font-semibold tracking-tight">Kevin's Tools</h1>
         <p class="mt-2 text-sm text-slate-600">A small collection of tools and utilities.</p>
@@ -22,8 +26,15 @@
                 href="/bookmarks"
                 class="rounded-md border border-slate-200 bg-white p-4 hover:border-slate-300 hover:bg-slate-100"
             >
-                <span class="block text-sm font-medium text-slate-900">Bookmarks</span>
+                <span class="block text-sm font-medium text-slate-900">Bookmarks {{if not .LoggedIn}}<span class="text-xs text-slate-400">(login required)</span>{{end}}</span>
                 <span class="block text-xs text-slate-500">Save and organize links</span>
+            </a>
+            <a
+                href="/jwt-decoder"
+                class="rounded-md border border-slate-200 bg-white p-4 hover:border-slate-300 hover:bg-slate-100"
+            >
+                <span class="block text-sm font-medium text-slate-900">JWT Decoder</span>
+                <span class="block text-xs text-slate-500">Decode a JWT's header and payload</span>
             </a>
         </div>
     </div>

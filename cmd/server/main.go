@@ -61,7 +61,7 @@ func run(logger *slog.Logger) error {
 	session := auth.New(sessionSecret)
 	authHandler := auth.NewHandler(session, cfg.AuthUsername, cfg.AuthPassword, renderer, logger)
 
-	mux := server.NewMux(handler, authHandler, session.Middleware, renderer, ping, "web/static", logger)
+	mux := server.NewMux(handler, authHandler, session.Middleware, session.Valid, renderer, ping, "web/static", logger)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
