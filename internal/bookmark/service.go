@@ -12,10 +12,10 @@ var ErrValidation = errors.New("validation failed")
 
 type Service interface {
 	List(ctx context.Context, query string) ([]Bookmark, error)
-	Get(ctx context.Context, id int64) (Bookmark, error)
+	Get(ctx context.Context, id string) (Bookmark, error)
 	Create(ctx context.Context, title, rawURL, description, tags string) (Bookmark, error)
-	Update(ctx context.Context, id int64, title, rawURL, description, tags string) (Bookmark, error)
-	Delete(ctx context.Context, id int64) error
+	Update(ctx context.Context, id string, title, rawURL, description, tags string) (Bookmark, error)
+	Delete(ctx context.Context, id string) error
 }
 
 type service struct {
@@ -30,7 +30,7 @@ func (s *service) List(ctx context.Context, query string) ([]Bookmark, error) {
 	return s.repo.List(ctx, strings.TrimSpace(query))
 }
 
-func (s *service) Get(ctx context.Context, id int64) (Bookmark, error) {
+func (s *service) Get(ctx context.Context, id string) (Bookmark, error) {
 	return s.repo.GetByID(ctx, id)
 }
 
@@ -42,7 +42,7 @@ func (s *service) Create(ctx context.Context, title, rawURL, description, tags s
 	return s.repo.Create(ctx, b)
 }
 
-func (s *service) Update(ctx context.Context, id int64, title, rawURL, description, tags string) (Bookmark, error) {
+func (s *service) Update(ctx context.Context, id string, title, rawURL, description, tags string) (Bookmark, error) {
 	b, err := normalize(title, rawURL, description, tags)
 	if err != nil {
 		return Bookmark{}, err
@@ -51,7 +51,7 @@ func (s *service) Update(ctx context.Context, id int64, title, rawURL, descripti
 	return s.repo.Update(ctx, b)
 }
 
-func (s *service) Delete(ctx context.Context, id int64) error {
+func (s *service) Delete(ctx context.Context, id string) error {
 	return s.repo.Delete(ctx, id)
 }
 

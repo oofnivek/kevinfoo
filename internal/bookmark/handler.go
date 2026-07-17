@@ -6,7 +6,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"strconv"
 )
 
 // Handler wires HTTP requests to the bookmark service and renders HTML
@@ -114,11 +113,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) EditForm(w http.ResponseWriter, r *http.Request) {
-	id, err := idFromPath(r)
-	if err != nil {
-		h.badRequest(w, err)
-		return
-	}
+	id := idFromPath(r)
 
 	b, err := h.svc.Get(r.Context(), id)
 	if errors.Is(err, ErrNotFound) {
@@ -133,20 +128,16 @@ func (h *Handler) EditForm(w http.ResponseWriter, r *http.Request) {
 	h.render(w, "bookmark-form", formData{
 		Bookmark:    b,
 		Method:      "put",
-		Action:      fmt.Sprintf("/bookmarks/%d", b.ID),
-		Target:      fmt.Sprintf("#bookmark-form-%d", b.ID),
+		Action:      fmt.Sprintf("/bookmarks/%s", b.ID),
+		Target:      fmt.Sprintf("#bookmark-form-%s", b.ID),
 		Swap:        "outerHTML",
-		CancelURL:   fmt.Sprintf("/bookmarks/%d", b.ID),
-		FieldSuffix: strconv.FormatInt(b.ID, 10),
+		CancelURL:   fmt.Sprintf("/bookmarks/%s", b.ID),
+		FieldSuffix: b.ID,
 	})
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
-	id, err := idFromPath(r)
-	if err != nil {
-		h.badRequest(w, err)
-		return
-	}
+	id := idFromPath(r)
 
 	if err := r.ParseForm(); err != nil {
 		h.badRequest(w, err)
@@ -160,11 +151,11 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		h.render(w, "bookmark-form", formData{
 			Bookmark:    formB,
 			Method:      "put",
-			Action:      fmt.Sprintf("/bookmarks/%d", id),
-			Target:      fmt.Sprintf("#bookmark-form-%d", id),
+			Action:      fmt.Sprintf("/bookmarks/%s", id),
+			Target:      fmt.Sprintf("#bookmark-form-%s", id),
 			Swap:        "outerHTML",
-			CancelURL:   fmt.Sprintf("/bookmarks/%d", id),
-			FieldSuffix: strconv.FormatInt(id, 10),
+			CancelURL:   fmt.Sprintf("/bookmarks/%s", id),
+			FieldSuffix: id,
 			Error:       err.Error(),
 		})
 		return
@@ -182,11 +173,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Row(w http.ResponseWriter, r *http.Request) {
-	id, err := idFromPath(r)
-	if err != nil {
-		h.badRequest(w, err)
-		return
-	}
+	id := idFromPath(r)
 
 	b, err := h.svc.Get(r.Context(), id)
 	if errors.Is(err, ErrNotFound) {
@@ -202,13 +189,9 @@ func (h *Handler) Row(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
-	id, err := idFromPath(r)
-	if err != nil {
-		h.badRequest(w, err)
-		return
-	}
+	id := idFromPath(r)
 
-	err = h.svc.Delete(r.Context(), id)
+	err := h.svc.Delete(r.Context(), id)
 	if errors.Is(err, ErrNotFound) {
 		http.Error(w, "bookmark not found", http.StatusNotFound)
 		return
@@ -230,8 +213,8 @@ func formBookmark(r *http.Request) Bookmark {
 	}
 }
 
-func idFromPath(r *http.Request) (int64, error) {
-	return strconv.ParseInt(r.PathValue("id"), 10, 64)
+func idFromPath(r *http.Request) string {
+	return r.PathValue("id")
 }
 
 func (h *Handler) badRequest(w http.ResponseWriter, err error) {

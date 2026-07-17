@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -30,26 +31,21 @@ func main() {
 func run(logger *slog.Logger) error {
 	cfg := config.Load()
 
-	db, err := database.Open(cfg.DBPath)
+	repo, ping, closeDB, err := openRepository(context.Background(), cfg)
 	if err != nil {
 		return err
 	}
-	defer db.Close()
-
-	if err := database.Migrate(db); err != nil {
-		return err
-	}
+	defer closeDB()
 
 	renderer, err := web.NewRenderer()
 	if err != nil {
 		return err
 	}
 
-	repo := bookmark.NewRepository(db)
 	svc := bookmark.NewService(repo)
 	handler := bookmark.NewHandler(svc, renderer, logger)
 
-	mux := server.NewMux(handler, renderer, db, "web/static", logger)
+	mux := server.NewMux(handler, renderer, ping, "web/static", logger)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
@@ -78,4 +74,43 @@ func run(logger *slog.Logger) error {
 	}
 
 	return nil
+}
+
+// openRepository connects to the configured storage backend and returns the
+// bookmark repository, a health-check ping function, and a cleanup func.
+func openRepository(ctx context.Context, cfg config.Config) (bookmark.Repository, func(context.Context) error, func(), error) {
+	switch cfg.DBDriver {
+	case "mongo":
+		client, err := database.OpenMongo(cfg.MongoURI())
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		repo, err := bookmark.NewMongoRepository(ctx, client.Database(cfg.MongoDatabase))
+		if err != nil {
+			client.Disconnect(context.Background())
+			return nil, nil, nil, err
+		}
+
+		ping := func(ctx context.Context) error { return client.Ping(ctx, nil) }
+		closeFn := func() { client.Disconnect(context.Background()) }
+		return repo, ping, closeFn, nil
+
+	case "sqlite":
+		db, err := database.Open(cfg.DBPath)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		if err := database.Migrate(db); err != nil {
+			db.Close()
+			return nil, nil, nil, err
+		}
+
+		repo := bookmark.NewSQLiteRepository(db)
+		return repo, db.PingContext, func() { db.Close() }, nil
+
+	default:
+		return nil, nil, nil, fmt.Errorf("unknown DB_DRIVER %q (expected \"sqlite\" or \"mongo\")", cfg.DBDriver)
+	}
 }

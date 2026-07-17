@@ -6,10 +6,22 @@ services:
     region: oregon
     healthCheckPath: /healthz
     envVars:
-      - key: DB_PATH
-        value: /data/bookmarks.db
       - key: PORT
         value: 8080
+      - key: DB_DRIVER
+        value: sqlite
+      - key: DB_PATH
+        value: /data/bookmarks.db
+      - key: MONGODB_USERNAME
+        value: oofnivek_db_user
+      - key: MONGODB_PASSWORD
+        sync: false
+      - key: MONGODB_HOST
+        value: cluster0.nsb5wji.mongodb.net
+      - key: MONGODB_APP_NAME
+        value: Cluster0
+      - key: MONGODB_DATABASE
+        value: bookmarks
     disk:
       name: bookmarks-data
       mountPath: /data

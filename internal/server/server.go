@@ -2,7 +2,7 @@
 package server
 
 import (
-	"database/sql"
+	"context"
 	"io"
 	"log/slog"
 	"net/http"
@@ -15,12 +15,12 @@ type Renderer interface {
 	Render(w io.Writer, name string, data any) error
 }
 
-func NewMux(bookmarks *bookmark.Handler, renderer Renderer, db *sql.DB, staticDir string, logger *slog.Logger) *http.ServeMux {
+func NewMux(bookmarks *bookmark.Handler, renderer Renderer, ping func(context.Context) error, staticDir string, logger *slog.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
 
-	mux.HandleFunc("GET /healthz", healthCheck(db))
+	mux.HandleFunc("GET /healthz", healthCheck(ping))
 
 	mux.HandleFunc("GET /{$}", homePage(renderer, logger))
 
@@ -45,9 +45,9 @@ func homePage(renderer Renderer, logger *slog.Logger) http.HandlerFunc {
 	}
 }
 
-func healthCheck(db *sql.DB) http.HandlerFunc {
+func healthCheck(ping func(context.Context) error) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if err := db.PingContext(r.Context()); err != nil {
+		if err := ping(r.Context()); err != nil {
 			http.Error(w, "database unavailable", http.StatusServiceUnavailable)
 			return
 		}

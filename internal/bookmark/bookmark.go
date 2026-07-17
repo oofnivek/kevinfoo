@@ -5,7 +5,7 @@ package bookmark
 import "time"
 
 type Bookmark struct {
-	ID          int64
+	ID          string
 	Title       string
 	URL         string
 	Description string

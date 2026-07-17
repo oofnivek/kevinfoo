@@ -2,7 +2,9 @@
 package config
 
 import (
+	"fmt"
 	"log"
+	"net/url"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -11,6 +13,16 @@ import (
 type Config struct {
 	Port   string
 	DBPath string
+
+	// DBDriver selects the storage backend: "sqlite" or "mongo".
+	DBDriver string
+
+	// Mongo connection settings, used when DBDriver is "mongo".
+	MongoUsername string
+	MongoPassword string
+	MongoHost     string
+	MongoAppName  string
+	MongoDatabase string
 }
 
 func Load() Config {
@@ -19,9 +31,27 @@ func Load() Config {
 	}
 
 	return Config{
-		Port:   getEnv("PORT", "8080"),
-		DBPath: getEnv("DB_PATH", "data/bookmarks.db"),
+		Port:     getEnv("PORT", "8080"),
+		DBPath:   getEnv("DB_PATH", "data/bookmarks.db"),
+		DBDriver: getEnv("DB_DRIVER", "sqlite"),
+
+		MongoUsername: getEnv("MONGODB_USERNAME", ""),
+		MongoPassword: getEnv("MONGODB_PASSWORD", ""),
+		MongoHost:     getEnv("MONGODB_HOST", ""),
+		MongoAppName:  getEnv("MONGODB_APP_NAME", "Cluster0"),
+		MongoDatabase: getEnv("MONGODB_DATABASE", "bookmarks"),
 	}
+}
+
+// MongoURI builds an Atlas mongodb+srv connection string from the
+// individual configured parameters.
+func (c Config) MongoURI() string {
+	return fmt.Sprintf("mongodb+srv://%s:%s@%s/?appName=%s",
+		url.QueryEscape(c.MongoUsername),
+		url.QueryEscape(c.MongoPassword),
+		c.MongoHost,
+		url.QueryEscape(c.MongoAppName),
+	)
 }
 
 func getEnv(key, fallback string) string {
