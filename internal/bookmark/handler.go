@@ -110,7 +110,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Fprint(w, `<div id="bookmark-form-slot" hx-swap-oob="true"></div>`)
-	h.render(w, "bookmark-list", map[string]any{"Bookmarks": bookmarks})
+	h.render(w, "bookmark-list", map[string]any{"Bookmarks": bookmarks, "OOB": true})
 }
 
 func (h *Handler) EditForm(w http.ResponseWriter, r *http.Request) {
