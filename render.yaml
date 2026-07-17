@@ -22,6 +22,12 @@ services:
         value: Cluster0
       - key: MONGODB_DATABASE
         value: bookmarks
+      - key: AUTH_USERNAME
+        sync: false
+      - key: AUTH_PASSWORD
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
     disk:
       name: bookmarks-data
       mountPath: /data

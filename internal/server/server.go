@@ -15,24 +15,35 @@ type Renderer interface {
 	Render(w io.Writer, name string, data any) error
 }
 
-func NewMux(bookmarks *bookmark.Handler, renderer Renderer, ping func(context.Context) error, staticDir string, logger *slog.Logger) *http.ServeMux {
+// AuthHandler serves the login/logout routes.
+type AuthHandler interface {
+	LoginForm(w http.ResponseWriter, r *http.Request)
+	Login(w http.ResponseWriter, r *http.Request)
+	Logout(w http.ResponseWriter, r *http.Request)
+}
+
+func NewMux(bookmarks *bookmark.Handler, auth AuthHandler, protect func(http.Handler) http.Handler, renderer Renderer, ping func(context.Context) error, staticDir string, logger *slog.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
 
 	mux.HandleFunc("GET /healthz", healthCheck(ping))
 
-	mux.HandleFunc("GET /{$}", homePage(renderer, logger))
+	mux.HandleFunc("GET /login", auth.LoginForm)
+	mux.HandleFunc("POST /login", auth.Login)
+	mux.HandleFunc("POST /logout", auth.Logout)
 
-	mux.HandleFunc("GET /bookmarks", bookmarks.Page)
-	mux.HandleFunc("GET /bookmarks/list", bookmarks.List)
-	mux.HandleFunc("POST /bookmarks", bookmarks.Create)
-	mux.HandleFunc("GET /bookmarks/new", bookmarks.NewForm)
-	mux.HandleFunc("GET /bookmarks/cancel", bookmarks.CancelForm)
-	mux.HandleFunc("GET /bookmarks/{id}", bookmarks.Row)
-	mux.HandleFunc("GET /bookmarks/{id}/edit", bookmarks.EditForm)
-	mux.HandleFunc("PUT /bookmarks/{id}", bookmarks.Update)
-	mux.HandleFunc("DELETE /bookmarks/{id}", bookmarks.Delete)
+	mux.Handle("GET /{$}", protect(homePage(renderer, logger)))
+
+	mux.Handle("GET /bookmarks", protect(http.HandlerFunc(bookmarks.Page)))
+	mux.Handle("GET /bookmarks/list", protect(http.HandlerFunc(bookmarks.List)))
+	mux.Handle("POST /bookmarks", protect(http.HandlerFunc(bookmarks.Create)))
+	mux.Handle("GET /bookmarks/new", protect(http.HandlerFunc(bookmarks.NewForm)))
+	mux.Handle("GET /bookmarks/cancel", protect(http.HandlerFunc(bookmarks.CancelForm)))
+	mux.Handle("GET /bookmarks/{id}", protect(http.HandlerFunc(bookmarks.Row)))
+	mux.Handle("GET /bookmarks/{id}/edit", protect(http.HandlerFunc(bookmarks.EditForm)))
+	mux.Handle("PUT /bookmarks/{id}", protect(http.HandlerFunc(bookmarks.Update)))
+	mux.Handle("DELETE /bookmarks/{id}", protect(http.HandlerFunc(bookmarks.Delete)))
 
 	return mux
 }

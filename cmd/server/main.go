@@ -3,6 +3,8 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -12,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"bookmarks/internal/auth"
 	"bookmarks/internal/bookmark"
 	"bookmarks/internal/config"
 	"bookmarks/internal/database"
@@ -31,6 +34,10 @@ func main() {
 func run(logger *slog.Logger) error {
 	cfg := config.Load()
 
+	if cfg.AuthUsername == "" || cfg.AuthPassword == "" {
+		return fmt.Errorf("AUTH_USERNAME and AUTH_PASSWORD must be set")
+	}
+
 	repo, ping, closeDB, err := openRepository(context.Background(), cfg)
 	if err != nil {
 		return err
@@ -45,7 +52,16 @@ func run(logger *slog.Logger) error {
 	svc := bookmark.NewService(repo)
 	handler := bookmark.NewHandler(svc, renderer, logger)
 
-	mux := server.NewMux(handler, renderer, ping, "web/static", logger)
+	sessionSecret := cfg.SessionSecret
+	if sessionSecret == "" {
+		logger.Warn("SESSION_SECRET not set, generating an ephemeral one; sessions will not survive a restart")
+		sessionSecret = randomSecret()
+	}
+
+	session := auth.New(sessionSecret)
+	authHandler := auth.NewHandler(session, cfg.AuthUsername, cfg.AuthPassword, renderer, logger)
+
+	mux := server.NewMux(handler, authHandler, session.Middleware, renderer, ping, "web/static", logger)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
@@ -74,6 +90,14 @@ func run(logger *slog.Logger) error {
 	}
 
 	return nil
+}
+
+func randomSecret() string {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		panic(err)
+	}
+	return hex.EncodeToString(b)
 }
 
 // openRepository connects to the configured storage backend and returns the

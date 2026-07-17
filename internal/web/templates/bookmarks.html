@@ -10,7 +10,12 @@
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-900">
     <div class="mx-auto max-w-3xl px-4 py-10">
-        <a href="/" class="mb-4 inline-block text-sm text-slate-500 hover:underline">&larr; Home</a>
+        <div class="mb-4 flex items-center justify-between">
+            <a href="/" class="inline-block text-sm text-slate-500 hover:underline">&larr; Home</a>
+            <form method="post" action="/logout">
+                <button type="submit" class="text-sm text-slate-500 hover:underline">Log out</button>
+            </form>
+        </div>
         <header class="mb-8 flex items-center justify-between">
             <h1 class="text-2xl font-semibold tracking-tight">Bookmarks</h1>
             <button

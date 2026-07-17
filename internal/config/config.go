@@ -23,6 +23,11 @@ type Config struct {
 	MongoHost     string
 	MongoAppName  string
 	MongoDatabase string
+
+	// Auth gates the whole app behind a single username/password.
+	AuthUsername  string
+	AuthPassword  string
+	SessionSecret string
 }
 
 func Load() Config {
@@ -40,6 +45,10 @@ func Load() Config {
 		MongoHost:     getEnv("MONGODB_HOST", ""),
 		MongoAppName:  getEnv("MONGODB_APP_NAME", "Cluster0"),
 		MongoDatabase: getEnv("MONGODB_DATABASE", "bookmarks"),
+
+		AuthUsername:  getEnv("AUTH_USERNAME", ""),
+		AuthPassword:  getEnv("AUTH_PASSWORD", ""),
+		SessionSecret: getEnv("SESSION_SECRET", ""),
 	}
 }
 

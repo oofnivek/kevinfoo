@@ -1,0 +1,53 @@
+{{define "login"}}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log in</title>
+    <link rel="stylesheet" href="/static/css/output.css">
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900">
+    <div class="mx-auto max-w-sm px-4 py-16">
+        <h1 class="mb-6 text-2xl font-semibold tracking-tight">Log in</h1>
+
+        <form method="post" action="/login" class="space-y-3 rounded-md border border-slate-200 bg-white p-4">
+            <input type="hidden" name="next" value="{{.Next}}">
+
+            {{if .Error}}
+                <p class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{{.Error}}</p>
+            {{end}}
+
+            <div>
+                <label class="block text-xs font-medium text-slate-600" for="username">Username</label>
+                <input
+                    id="username"
+                    name="username"
+                    type="text"
+                    autocomplete="username"
+                    required
+                    autofocus
+                    class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                >
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-slate-600" for="password">Password</label>
+                <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autocomplete="current-password"
+                    required
+                    class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                >
+            </div>
+
+            <button type="submit" class="w-full rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700">
+                Log in
+            </button>
+        </form>
+    </div>
+</body>
+</html>
+{{end}}
