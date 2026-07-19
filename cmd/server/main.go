@@ -58,8 +58,13 @@ func run(logger *slog.Logger) error {
 		sessionSecret = randomSecret()
 	}
 
+	recaptchaSiteKey, recaptchaSecretKey := cfg.RecaptchaSiteKey, cfg.RecaptchaSecretKey
+	if !cfg.RecaptchaEnabled {
+		recaptchaSiteKey, recaptchaSecretKey = "", ""
+	}
+
 	session := auth.New(sessionSecret)
-	authHandler := auth.NewHandler(session, cfg.AuthUsername, cfg.AuthPassword, cfg.RecaptchaSiteKey, cfg.RecaptchaSecretKey, renderer, logger)
+	authHandler := auth.NewHandler(session, cfg.AuthUsername, cfg.AuthPassword, recaptchaSiteKey, recaptchaSecretKey, renderer, logger)
 
 	mux := server.NewMux(handler, authHandler, session.Middleware, session.Valid, renderer, ping, "web/static", logger)
 

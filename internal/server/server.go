@@ -40,9 +40,9 @@ func NewMux(bookmarks *bookmark.Handler, auth AuthHandler, protect func(http.Han
 	mux.Handle("GET /bookmarks/list", protect(http.HandlerFunc(bookmarks.List)))
 	mux.Handle("POST /bookmarks", protect(http.HandlerFunc(bookmarks.Create)))
 	mux.Handle("GET /bookmarks/new", protect(http.HandlerFunc(bookmarks.NewForm)))
-	mux.Handle("GET /bookmarks/cancel", protect(http.HandlerFunc(bookmarks.CancelForm)))
 	mux.Handle("GET /bookmarks/{id}", protect(http.HandlerFunc(bookmarks.Row)))
 	mux.Handle("GET /bookmarks/{id}/edit", protect(http.HandlerFunc(bookmarks.EditForm)))
+	mux.Handle("GET /bookmarks/{id}/confirm-delete", protect(http.HandlerFunc(bookmarks.ConfirmDelete)))
 	mux.Handle("PUT /bookmarks/{id}", protect(http.HandlerFunc(bookmarks.Update)))
 	mux.Handle("DELETE /bookmarks/{id}", protect(http.HandlerFunc(bookmarks.Delete)))
 

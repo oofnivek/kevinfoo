@@ -1,0 +1,31 @@
+{{define "bookmark-delete-confirm"}}
+<div id="bookmark-delete-modal" class="fixed inset-0 z-50 grid place-items-center bg-zinc-900/45 px-6"
+     onclick="if (event.target === this) this.remove()">
+    <div class="w-full max-w-xs bg-white dark:bg-zinc-900 rounded-2xl sm:rounded-xl shadow-2xl p-5">
+        <div class="w-10 h-10 rounded-full bg-red-50 dark:bg-red-950 text-red-600 grid place-items-center mb-3">🗑</div>
+        <h2 class="font-semibold text-[16px] sm:text-[15px] mb-1">Delete "{{.Title}}"?</h2>
+        <p class="text-[13.5px] sm:text-xs text-zinc-500 leading-relaxed mb-3">This removes the bookmark permanently. Type the title to confirm.</p>
+
+        <input
+            type="text"
+            autocomplete="off"
+            autofocus
+            placeholder="{{.Title}}"
+            class="mb-4 w-full rounded-xl sm:rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3.5 py-3 sm:py-2 text-[15px] sm:text-sm outline-none focus:border-red-500 focus:ring-4 focus:ring-red-50 dark:focus:ring-red-950"
+            oninput="document.getElementById('confirm-delete-btn').disabled = this.value !== '{{.Title}}'"
+        >
+
+        <div class="flex gap-2.5">
+            <button type="button" onclick="document.getElementById('bookmark-delete-modal').remove()"
+                    class="flex-1 text-[15px] sm:text-sm font-medium text-zinc-600 dark:text-zinc-300 py-3 sm:py-2 rounded-xl sm:rounded-lg border border-zinc-200 dark:border-zinc-700">Cancel</button>
+            <button id="confirm-delete-btn" disabled
+                    class="flex-1 text-[15px] sm:text-sm font-semibold text-white py-3 sm:py-2 rounded-xl sm:rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                    hx-delete="/bookmarks/{{.ID}}"
+                    hx-target="#bookmark-{{.ID}}"
+                    hx-swap="outerHTML swap:200ms"
+                    hx-on::after-request="if(event.detail.successful) document.getElementById('bookmark-delete-modal').remove()"
+            >Delete</button>
+        </div>
+    </div>
+</div>
+{{end}}

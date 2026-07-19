@@ -1,0 +1,16 @@
+<!-- Delete confirmation partial — swapped into #modal-root -->
+<div id="modal" class="fixed inset-0 z-50 grid place-items-center bg-zinc-900/45 px-6"
+     onclick="if (event.target === this) this.remove()">
+  <div class="w-full max-w-xs bg-white dark:bg-zinc-900 rounded-2xl sm:rounded-xl shadow-2xl p-5">
+    <div class="w-10 h-10 rounded-full bg-red-50 dark:bg-red-950 text-red-600 grid place-items-center mb-3">🗑</div>
+    <h2 class="font-semibold text-[16px] sm:text-[15px] mb-1">Delete “htmx documentation”?</h2>
+    <p class="text-[13.5px] sm:text-xs text-zinc-500 leading-relaxed mb-4">This removes the bookmark permanently. Its tags are kept.</p>
+    <div class="flex gap-2.5">
+      <button onclick="document.getElementById('modal').remove()"
+              class="flex-1 text-[15px] sm:text-sm font-medium text-zinc-600 dark:text-zinc-300 py-3 sm:py-2 rounded-xl sm:rounded-lg border border-zinc-200 dark:border-zinc-700">Cancel</button>
+      <button class="flex-1 text-[15px] sm:text-sm font-semibold text-white py-3 sm:py-2 rounded-xl sm:rounded-lg bg-red-600 hover:bg-red-700"
+              hx-delete="/bookmarks/1" hx-target="#bookmark-1" hx-swap="outerHTML swap:200ms"
+              _="on htmx:afterRequest remove #modal">Delete</button>
+    </div>
+  </div>
+</div>

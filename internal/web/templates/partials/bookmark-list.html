@@ -1,7 +1,7 @@
 {{define "bookmark-list"}}
-<ul id="bookmark-list" {{if .OOB}}hx-swap-oob="true"{{end}} class="divide-y divide-slate-200 rounded-md border border-slate-200 bg-white">
+<ul id="bookmark-list" {{if .OOB}}hx-swap-oob="true"{{end}} class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden divide-y divide-zinc-100 dark:divide-zinc-800">
     {{if not .Bookmarks}}
-        <li class="px-4 py-6 text-center text-sm text-slate-500">No bookmarks yet.</li>
+        <li class="px-4 py-6 text-center text-sm text-zinc-500">No bookmarks yet.</li>
     {{end}}
     {{range .Bookmarks}}
         {{template "bookmark-row" .}}

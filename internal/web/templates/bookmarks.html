@@ -1,49 +1,73 @@
 {{define "bookmarks-page"}}
 <!doctype html>
-<html lang="en">
+<html lang="en" class="">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bookmarks</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/output.css">
     <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
+    <script>
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        }
+        function toggleTheme() {
+            const dark = document.documentElement.classList.toggle('dark');
+            localStorage.theme = dark ? 'dark' : 'light';
+        }
+    </script>
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-900">
-    <div class="mx-auto max-w-3xl px-4 py-10">
-        <div class="mb-4 flex items-center justify-between">
-            <a href="/" class="inline-block text-sm text-slate-500 hover:underline">&larr; Home</a>
-            <form method="post" action="/logout">
-                <button type="submit" class="text-sm text-slate-500 hover:underline">Log out</button>
-            </form>
+<body class="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans">
+
+    <header class="sticky top-0 z-10 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
+        <div class="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
+            <div class="w-6 h-6 rounded-md bg-indigo-600 grid place-items-center text-white text-xs font-bold shrink-0">B</div>
+            <span class="font-semibold">Bookmarks</span>
+
+            <div class="ml-auto flex items-center gap-2">
+                <button onclick="toggleTheme()" aria-label="Toggle theme"
+                        class="w-9 h-9 rounded-lg border border-zinc-200 dark:border-zinc-700 grid place-items-center text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800">◐</button>
+                <button
+                    aria-label="Add bookmark"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg w-9 h-9 sm:w-auto sm:h-auto sm:px-3.5 sm:py-2"
+                    hx-get="/bookmarks/new"
+                    hx-target="#modal-root"
+                    hx-swap="innerHTML"
+                >
+                    <span aria-hidden="true">+</span><span class="hidden sm:inline"> Add bookmark</span>
+                </button>
+                <a href="/" class="text-sm text-zinc-500 hover:underline">Home</a>
+                <form method="post" action="/logout">
+                    <button type="submit" class="text-sm text-zinc-500 hover:underline">Log out</button>
+                </form>
+            </div>
         </div>
-        <header class="mb-8 flex items-center justify-between">
-            <h1 class="text-2xl font-semibold tracking-tight">Bookmarks</h1>
-            <button
-                class="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700"
-                hx-get="/bookmarks/new"
-                hx-target="#bookmark-form-slot"
-                hx-swap="innerHTML"
-            >
-                Add bookmark
-            </button>
-        </header>
 
-        <div id="bookmark-form-slot"></div>
+        <div class="max-w-3xl mx-auto px-4 pb-3">
+            <div class="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-1.5">
+                <span class="text-zinc-400 text-sm">⌕</span>
+                <input
+                    type="search"
+                    name="q"
+                    autocomplete="off"
+                    placeholder="Search bookmarks..."
+                    class="bg-transparent outline-none text-sm w-full placeholder-zinc-400"
+                    hx-get="/bookmarks/list"
+                    hx-trigger="keyup changed delay:300ms, search"
+                    hx-target="#bookmark-list"
+                    hx-swap="outerHTML"
+                >
+            </div>
+        </div>
+    </header>
 
-        <input
-            type="search"
-            name="q"
-            autocomplete="off"
-            placeholder="Search bookmarks..."
-            class="mb-6 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-            hx-get="/bookmarks/list"
-            hx-trigger="keyup changed delay:300ms, search"
-            hx-target="#bookmark-list"
-            hx-swap="outerHTML"
-        >
-
+    <main class="max-w-3xl mx-auto px-4 py-6">
         {{template "bookmark-list" .}}
-    </div>
+    </main>
+
+    <div id="modal-root"></div>
 </body>
 </html>
 {{end}}

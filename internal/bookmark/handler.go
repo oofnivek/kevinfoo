@@ -1,6 +1,7 @@
 package bookmark
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -12,7 +13,7 @@ import (
 // fragments for htmx.
 type Handler struct {
 	svc    Service
-	render func(w http.ResponseWriter, name string, data any)
+	render func(w io.Writer, name string, data any)
 	logger *slog.Logger
 }
 
@@ -25,7 +26,7 @@ func NewHandler(svc Service, r Renderer, logger *slog.Logger) *Handler {
 	return &Handler{
 		svc:    svc,
 		logger: logger,
-		render: func(w http.ResponseWriter, name string, data any) {
+		render: func(w io.Writer, name string, data any) {
 			if err := r.Render(w, name, data); err != nil {
 				logger.Error("render template", "template", name, "error", err)
 			}
@@ -39,7 +40,6 @@ type formData struct {
 	Action      string
 	Target      string
 	Swap        string
-	CancelURL   string
 	FieldSuffix string
 	Error       string
 }
@@ -63,18 +63,13 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) NewForm(w http.ResponseWriter, r *http.Request) {
-	h.render(w, "bookmark-form", formData{
+	h.render(w, "bookmark-form-modal", formData{
 		Method:      "post",
 		Action:      "/bookmarks",
-		Target:      "#bookmark-form-slot",
+		Target:      "#modal-root",
 		Swap:        "innerHTML",
-		CancelURL:   "/bookmarks/cancel",
 		FieldSuffix: "new",
 	})
-}
-
-func (h *Handler) CancelForm(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
@@ -85,13 +80,12 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 
 	_, err := h.svc.Create(r.Context(), r.PostForm.Get("title"), r.PostForm.Get("url"), r.PostForm.Get("description"), r.PostForm.Get("tags"))
 	if errors.Is(err, ErrValidation) {
-		h.render(w, "bookmark-form", formData{
+		h.render(w, "bookmark-form-modal", formData{
 			Bookmark:    formBookmark(r),
 			Method:      "post",
 			Action:      "/bookmarks",
-			Target:      "#bookmark-form-slot",
+			Target:      "#modal-root",
 			Swap:        "innerHTML",
-			CancelURL:   "/bookmarks/cancel",
 			FieldSuffix: "new",
 			Error:       err.Error(),
 		})
@@ -108,7 +102,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprint(w, `<div id="bookmark-form-slot" hx-swap-oob="true"></div>`)
+	fmt.Fprint(w, `<div id="modal-root" hx-swap-oob="true"></div>`)
 	h.render(w, "bookmark-list", map[string]any{"Bookmarks": bookmarks, "OOB": true})
 }
 
@@ -125,13 +119,12 @@ func (h *Handler) EditForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.render(w, "bookmark-form", formData{
+	h.render(w, "bookmark-form-modal", formData{
 		Bookmark:    b,
 		Method:      "put",
 		Action:      fmt.Sprintf("/bookmarks/%s", b.ID),
-		Target:      fmt.Sprintf("#bookmark-form-%s", b.ID),
-		Swap:        "outerHTML",
-		CancelURL:   fmt.Sprintf("/bookmarks/%s", b.ID),
+		Target:      "#modal-root",
+		Swap:        "innerHTML",
 		FieldSuffix: b.ID,
 	})
 }
@@ -148,13 +141,12 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	if errors.Is(err, ErrValidation) {
 		formB := formBookmark(r)
 		formB.ID = id
-		h.render(w, "bookmark-form", formData{
+		h.render(w, "bookmark-form-modal", formData{
 			Bookmark:    formB,
 			Method:      "put",
 			Action:      fmt.Sprintf("/bookmarks/%s", id),
-			Target:      fmt.Sprintf("#bookmark-form-%s", id),
-			Swap:        "outerHTML",
-			CancelURL:   fmt.Sprintf("/bookmarks/%s", id),
+			Target:      "#modal-root",
+			Swap:        "innerHTML",
 			FieldSuffix: id,
 			Error:       err.Error(),
 		})
@@ -169,7 +161,14 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.render(w, "bookmark-row", b)
+	// The modal's own hx-target is "#modal-root"; the updated row is sent
+	// as an out-of-band swap so it lands back in the list once the modal
+	// (now empty) closes.
+	var buf bytes.Buffer
+	h.render(&buf, "bookmark-row", b)
+	rowOpenTag := []byte(fmt.Sprintf(`id="bookmark-%s"`, b.ID))
+	rowOpenTagOOB := []byte(fmt.Sprintf(`id="bookmark-%s" hx-swap-oob="true"`, b.ID))
+	w.Write(bytes.Replace(buf.Bytes(), rowOpenTag, rowOpenTagOOB, 1))
 }
 
 func (h *Handler) Row(w http.ResponseWriter, r *http.Request) {
@@ -186,6 +185,22 @@ func (h *Handler) Row(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, "bookmark-row", b)
+}
+
+func (h *Handler) ConfirmDelete(w http.ResponseWriter, r *http.Request) {
+	id := idFromPath(r)
+
+	b, err := h.svc.Get(r.Context(), id)
+	if errors.Is(err, ErrNotFound) {
+		http.Error(w, "bookmark not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		h.serverError(w, err)
+		return
+	}
+
+	h.render(w, "bookmark-delete-confirm", b)
 }
 
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {

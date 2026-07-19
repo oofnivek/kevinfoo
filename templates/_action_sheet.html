@@ -1,0 +1,26 @@
+<!-- Mobile action sheet partial — served from GET /bookmarks/:id/actions, swapped into #modal-root -->
+<div id="modal" class="fixed inset-0 z-50 flex items-end bg-zinc-900/45 sm:hidden"
+     onclick="if (event.target === this) this.remove()">
+  <div class="w-full bg-white dark:bg-zinc-900 rounded-t-2xl px-3 pb-4 pt-2">
+    <div class="w-9 h-1 rounded-full bg-zinc-200 dark:bg-zinc-700 mx-auto mb-3"></div>
+    <div class="flex items-center gap-3 px-2 pb-3.5 border-b border-zinc-100 dark:border-zinc-800">
+      <div class="w-9 h-9 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 grid place-items-center text-sm font-bold">H</div>
+      <div class="min-w-0">
+        <div class="text-[15px] font-semibold truncate">htmx documentation</div>
+        <div class="text-[12.5px] text-zinc-400 truncate">htmx.org/docs</div>
+      </div>
+    </div>
+    <div class="flex flex-col mt-1.5">
+      <a href="https://htmx.org/docs/" target="_blank" rel="noopener"
+         class="flex items-center gap-3 px-2 py-3 rounded-xl text-[15px] font-medium active:bg-zinc-100 dark:active:bg-zinc-800"><span class="w-6 text-center">↗</span> Open link</a>
+      <button onclick="navigator.clipboard.writeText('https://htmx.org/docs/'); document.getElementById('modal').remove()"
+              class="flex items-center gap-3 px-2 py-3 rounded-xl text-[15px] font-medium active:bg-zinc-100 dark:active:bg-zinc-800 text-left"><span class="w-6 text-center">⧉</span> Copy URL</button>
+      <button hx-get="/bookmarks/1/edit" hx-target="#modal-root" hx-swap="innerHTML"
+              class="flex items-center gap-3 px-2 py-3 rounded-xl text-[15px] font-medium active:bg-zinc-100 dark:active:bg-zinc-800 text-left"><span class="w-6 text-center">✎</span> Edit</button>
+      <button hx-get="/bookmarks/1/confirm-delete" hx-target="#modal-root" hx-swap="innerHTML"
+              class="flex items-center gap-3 px-2 py-3 rounded-xl text-[15px] font-medium text-red-600 active:bg-red-50 dark:active:bg-red-950 text-left"><span class="w-6 text-center">🗑</span> Delete</button>
+    </div>
+    <button onclick="document.getElementById('modal').remove()"
+            class="w-full text-center text-[15px] font-medium text-zinc-600 dark:text-zinc-300 py-3 border border-zinc-200 dark:border-zinc-700 rounded-xl mt-2">Cancel</button>
+  </div>
+</div>

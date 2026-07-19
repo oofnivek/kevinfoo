@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -29,7 +30,10 @@ type Config struct {
 	AuthPassword  string
 	SessionSecret string
 
-	// Google reCAPTCHA v2 checkbox on the login page.
+	// Google reCAPTCHA v2 checkbox on the login page. RecaptchaEnabled lets
+	// it be switched off locally (e.g. for scripted/dev logins) without
+	// clearing the configured keys.
+	RecaptchaEnabled   bool
 	RecaptchaSiteKey   string
 	RecaptchaSecretKey string
 }
@@ -54,6 +58,7 @@ func Load() Config {
 		AuthPassword:  getEnv("AUTH_PASSWORD", ""),
 		SessionSecret: getEnv("SESSION_SECRET", ""),
 
+		RecaptchaEnabled:   getEnvBool("RECAPTCHA_ENABLED", true),
 		RecaptchaSiteKey:   getEnv("RECAPTCHA_SITE_KEY", ""),
 		RecaptchaSecretKey: getEnv("RECAPTCHA_SECRET_KEY", ""),
 	}
@@ -75,4 +80,16 @@ func getEnv(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func getEnvBool(key string, fallback bool) bool {
+	value, ok := os.LookupEnv(key)
+	if !ok {
+		return fallback
+	}
+	parsed, err := strconv.ParseBool(value)
+	if err != nil {
+		return fallback
+	}
+	return parsed
 }

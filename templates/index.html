@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en" class="">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bookmarks</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: { extend: { fontFamily: { sans: ['"Instrument Sans"', 'system-ui', 'sans-serif'] } } }
+  };
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+<script>
+  // Theme toggle — persists in localStorage, respects system preference on first visit
+  if (localStorage.theme === 'dark' || (!('theme' in localStorage) && matchMedia('(prefers-color-scheme: dark)').matches)) {
+    document.documentElement.classList.add('dark');
+  }
+  function toggleTheme() {
+    const dark = document.documentElement.classList.toggle('dark');
+    localStorage.theme = dark ? 'dark' : 'light';
+  }
+</script>
+</head>
+<body class="bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans min-h-screen">
+
+<!-- ===================== Header ===================== -->
+<header class="sticky top-0 z-10 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
+  <div class="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
+    <div class="w-6 h-6 rounded-md bg-indigo-600 grid place-items-center text-white text-xs font-bold shrink-0">B</div>
+    <span class="font-semibold">Bookmarks</span>
+
+    <!-- Search: htmx live search, desktop only (mobile search below) -->
+    <div class="hidden sm:flex flex-1 max-w-sm items-center gap-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-1.5">
+      <span class="text-zinc-400 text-sm">⌕</span>
+      <input type="search" name="q" placeholder="Search titles, URLs, tags…"
+             class="bg-transparent outline-none text-sm w-full placeholder-zinc-400"
+             hx-get="/bookmarks/search" hx-trigger="input changed delay:300ms, keyup[key=='Enter']"
+             hx-target="#bookmark-list" hx-swap="innerHTML" hx-indicator="#search-spinner">
+      <kbd class="text-[11px] border border-zinc-300 dark:border-zinc-600 rounded px-1 text-zinc-400">/</kbd>
+    </div>
+
+    <div class="ml-auto flex items-center gap-2">
+      <button onclick="toggleTheme()" aria-label="Toggle theme"
+              class="w-11 h-11 sm:w-9 sm:h-9 rounded-lg border border-zinc-200 dark:border-zinc-700 grid place-items-center text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800">◐</button>
+      <!-- Desktop add button; mobile uses the FAB -->
+      <button class="hidden sm:block bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-3.5 py-2 rounded-lg"
+              hx-get="/bookmarks/new" hx-target="#modal-root" hx-swap="innerHTML">+ Add bookmark</button>
+    </div>
+  </div>
+
+  <!-- Mobile search -->
+  <div class="sm:hidden px-4 pb-3">
+    <div class="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5">
+      <span class="text-zinc-400">⌕</span>
+      <input type="search" name="q" placeholder="Search…"
+             class="bg-transparent outline-none text-[15px] w-full placeholder-zinc-400"
+             hx-get="/bookmarks/search" hx-trigger="input changed delay:300ms"
+             hx-target="#bookmark-list" hx-swap="innerHTML">
+    </div>
+  </div>
+
+  <!-- Tag filter bar: server returns the filtered list -->
+  <div class="max-w-4xl mx-auto px-4 pb-2.5 flex gap-2 overflow-x-auto text-xs sm:text-[13px]">
+    <button class="shrink-0 bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900 px-3 py-1.5 rounded-full font-medium"
+            hx-get="/bookmarks" hx-target="#bookmark-list">All · 104</button>
+    <!-- Loop over tags server-side; example: -->
+    <button class="shrink-0 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 px-3 py-1.5 rounded-full hover:border-zinc-300"
+            hx-get="/bookmarks?tag=dev" hx-target="#bookmark-list">dev</button>
+    <button class="shrink-0 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 px-3 py-1.5 rounded-full hover:border-zinc-300"
+            hx-get="/bookmarks?tag=reading" hx-target="#bookmark-list">reading</button>
+    <button class="shrink-0 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 px-3 py-1.5 rounded-full hover:border-zinc-300"
+            hx-get="/bookmarks?tag=tools" hx-target="#bookmark-list">tools</button>
+  </div>
+</header>
+
+<!-- ===================== List ===================== -->
+<main class="max-w-4xl mx-auto px-0 sm:px-4 py-0 sm:py-4">
+  <div id="bookmark-list" class="bg-white dark:bg-zinc-900 sm:border sm:border-zinc-200 sm:dark:border-zinc-800 sm:rounded-xl overflow-hidden divide-y divide-zinc-100 dark:divide-zinc-800">
+
+    <!-- ====== Row partial (_bookmark_row.html) — repeat per bookmark ====== -->
+    <div id="bookmark-1" class="group flex items-center gap-3 px-4 py-3 sm:py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+      <div class="w-8 h-8 sm:w-7 sm:h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 grid place-items-center text-sm font-bold shrink-0">H</div>
+      <div class="flex-1 min-w-0">
+        <div class="sm:flex sm:items-baseline sm:gap-2">
+          <a href="https://htmx.org/docs/" target="_blank" rel="noopener" class="text-[15px] sm:text-sm font-semibold hover:text-indigo-600 truncate block sm:inline">htmx documentation</a>
+          <span class="text-xs text-zinc-400 truncate block sm:inline">htmx.org/docs</span>
+        </div>
+        <p class="text-xs sm:text-xs text-zinc-500 truncate hidden sm:block">Reference for hx-* attributes, swapping, triggers.</p>
+        <div class="flex gap-1.5 mt-1 sm:hidden">
+          <span class="text-[11px] bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 px-2 py-px rounded-full">dev</span>
+          <span class="text-[11px] bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 px-2 py-px rounded-full">reference</span>
+        </div>
+      </div>
+      <!-- Desktop: tags + inline actions -->
+      <div class="hidden sm:flex gap-1.5 shrink-0">
+        <span class="text-[11px] bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 px-2 py-px rounded-full">dev</span>
+        <span class="text-[11px] bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 px-2 py-px rounded-full">reference</span>
+      </div>
+      <span class="hidden sm:block text-[11px] text-zinc-400 w-12 text-right shrink-0">2h</span>
+      <div class="hidden sm:flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button aria-label="Edit" class="w-7 h-7 rounded-md grid place-items-center text-zinc-500 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950"
+                hx-get="/bookmarks/1/edit" hx-target="#modal-root" hx-swap="innerHTML">✎</button>
+        <button aria-label="Delete" class="w-7 h-7 rounded-md grid place-items-center text-zinc-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
+                hx-get="/bookmarks/1/confirm-delete" hx-target="#modal-root" hx-swap="innerHTML">✕</button>
+      </div>
+      <!-- Mobile: single 44px target opening the action sheet -->
+      <button aria-label="Actions" class="sm:hidden w-11 h-11 rounded-xl grid place-items-center text-zinc-500 active:bg-zinc-100 dark:active:bg-zinc-800 text-lg shrink-0"
+              hx-get="/bookmarks/1/actions" hx-target="#modal-root" hx-swap="innerHTML">⋯</button>
+    </div>
+    <!-- ====== /Row partial ====== -->
+
+  </div>
+
+  <!-- Pagination -->
+  <div class="flex items-center justify-between px-4 py-3 text-xs text-zinc-400">
+    <span>Showing 8 of 104</span>
+    <nav class="flex gap-2">
+      <button class="hover:text-zinc-700 dark:hover:text-zinc-200" hx-get="/bookmarks?page=1" hx-target="#bookmark-list">←</button>
+      <button class="font-semibold text-zinc-900 dark:text-zinc-100">2</button>
+      <button class="hover:text-zinc-700 dark:hover:text-zinc-200" hx-get="/bookmarks?page=3" hx-target="#bookmark-list">→</button>
+    </nav>
+  </div>
+</main>
+
+<!-- Mobile FAB -->
+<button aria-label="Add bookmark" class="sm:hidden fixed right-4 bottom-6 w-14 h-14 rounded-full bg-indigo-600 text-white text-2xl shadow-lg shadow-indigo-600/30 grid place-items-center"
+        hx-get="/bookmarks/new" hx-target="#modal-root" hx-swap="innerHTML">+</button>
+
+<!-- htmx swaps modals / sheets / confirms into here -->
+<div id="modal-root"></div>
+
+</body>
+</html>
