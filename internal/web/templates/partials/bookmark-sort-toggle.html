@@ -1,0 +1,14 @@
+{{define "bookmark-sort-toggle"}}
+<input type="hidden" id="sort-state" name="sort" value="{{.Sort}}" {{if .OOB}}hx-swap-oob="true"{{end}}>
+<button id="sort-toggle" {{if .OOB}}hx-swap-oob="true"{{end}}
+        type="button"
+        aria-label="Sort by title, currently {{if eq .Sort "asc"}}ascending{{else if eq .Sort "desc"}}descending{{else}}unsorted{{end}}"
+        title="Sort by title"
+        hx-get="/bookmarks/list?sort={{if eq .Sort "asc"}}desc{{else}}asc{{end}}"
+        hx-include="[name='q']"
+        hx-target="#bookmark-list"
+        hx-swap="outerHTML"
+        class="w-9 h-9 rounded-lg border border-zinc-200 dark:border-zinc-700 grid place-items-center text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+    {{if eq .Sort "asc"}}&#8593;{{else if eq .Sort "desc"}}&#8595;{{else}}&#8645;{{end}}
+</button>
+{{end}}

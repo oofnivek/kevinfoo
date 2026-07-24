@@ -45,21 +45,24 @@ type formData struct {
 }
 
 func (h *Handler) Page(w http.ResponseWriter, r *http.Request) {
-	bookmarks, err := h.svc.List(r.Context(), r.URL.Query().Get("q"))
+	sort := r.URL.Query().Get("sort")
+	bookmarks, err := h.svc.List(r.Context(), r.URL.Query().Get("q"), sort)
 	if err != nil {
 		h.serverError(w, err)
 		return
 	}
-	h.render(w, "bookmarks-page", map[string]any{"Bookmarks": bookmarks})
+	h.render(w, "bookmarks-page", map[string]any{"Bookmarks": bookmarks, "Sort": sort})
 }
 
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
-	bookmarks, err := h.svc.List(r.Context(), r.URL.Query().Get("q"))
+	sort := r.URL.Query().Get("sort")
+	bookmarks, err := h.svc.List(r.Context(), r.URL.Query().Get("q"), sort)
 	if err != nil {
 		h.serverError(w, err)
 		return
 	}
 	h.render(w, "bookmark-list", map[string]any{"Bookmarks": bookmarks})
+	h.render(w, "bookmark-sort-toggle", map[string]any{"Sort": sort, "OOB": true})
 }
 
 func (h *Handler) NewForm(w http.ResponseWriter, r *http.Request) {
@@ -96,7 +99,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bookmarks, err := h.svc.List(r.Context(), "")
+	bookmarks, err := h.svc.List(r.Context(), "", "")
 	if err != nil {
 		h.serverError(w, err)
 		return

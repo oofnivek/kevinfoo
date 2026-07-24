@@ -11,7 +11,7 @@ import (
 var ErrValidation = errors.New("validation failed")
 
 type Service interface {
-	List(ctx context.Context, query string) ([]Bookmark, error)
+	List(ctx context.Context, query, sort string) ([]Bookmark, error)
 	Get(ctx context.Context, id string) (Bookmark, error)
 	Create(ctx context.Context, title, rawURL, description, tags string) (Bookmark, error)
 	Update(ctx context.Context, id string, title, rawURL, description, tags string) (Bookmark, error)
@@ -26,8 +26,11 @@ func NewService(repo Repository) Service {
 	return &service{repo: repo}
 }
 
-func (s *service) List(ctx context.Context, query string) ([]Bookmark, error) {
-	return s.repo.List(ctx, strings.TrimSpace(query))
+func (s *service) List(ctx context.Context, query, sort string) ([]Bookmark, error) {
+	if sort != "asc" && sort != "desc" {
+		sort = ""
+	}
+	return s.repo.List(ctx, strings.TrimSpace(query), sort)
 }
 
 func (s *service) Get(ctx context.Context, id string) (Bookmark, error) {

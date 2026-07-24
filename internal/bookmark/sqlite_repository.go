@@ -18,22 +18,29 @@ func NewSQLiteRepository(db *sql.DB) Repository {
 	return &sqliteRepository{db: db}
 }
 
-func (r *sqliteRepository) List(ctx context.Context, query string) ([]Bookmark, error) {
+func (r *sqliteRepository) List(ctx context.Context, query, sort string) ([]Bookmark, error) {
 	var rows *sql.Rows
 	var err error
+
+	orderBy := "created_at DESC"
+	if sort == "asc" {
+		orderBy = "title COLLATE NOCASE ASC"
+	} else if sort == "desc" {
+		orderBy = "title COLLATE NOCASE DESC"
+	}
 
 	if query == "" {
 		rows, err = r.db.QueryContext(ctx, `
 			SELECT id, title, url, description, tags, created_at, updated_at
 			FROM bookmarks
-			ORDER BY created_at DESC`)
+			ORDER BY `+orderBy)
 	} else {
 		like := "%" + query + "%"
 		rows, err = r.db.QueryContext(ctx, `
 			SELECT id, title, url, description, tags, created_at, updated_at
 			FROM bookmarks
 			WHERE title LIKE ? OR url LIKE ? OR description LIKE ? OR tags LIKE ?
-			ORDER BY created_at DESC`, like, like, like, like)
+			ORDER BY `+orderBy, like, like, like, like)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("list bookmarks: %w", err)

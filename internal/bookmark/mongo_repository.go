@@ -53,7 +53,7 @@ func (m mongoBookmark) toBookmark() Bookmark {
 	}
 }
 
-func (r *mongoRepository) List(ctx context.Context, query string) ([]Bookmark, error) {
+func (r *mongoRepository) List(ctx context.Context, query, sort string) ([]Bookmark, error) {
 	filter := bson.M{}
 	if query != "" {
 		re := bson.Regex{Pattern: query, Options: "i"}
@@ -65,7 +65,14 @@ func (r *mongoRepository) List(ctx context.Context, query string) ([]Bookmark, e
 		}}
 	}
 
-	cur, err := r.coll.Find(ctx, filter, options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}))
+	order := bson.D{{Key: "created_at", Value: -1}}
+	if sort == "asc" {
+		order = bson.D{{Key: "title", Value: 1}}
+	} else if sort == "desc" {
+		order = bson.D{{Key: "title", Value: -1}}
+	}
+
+	cur, err := r.coll.Find(ctx, filter, options.Find().SetSort(order))
 	if err != nil {
 		return nil, fmt.Errorf("list bookmarks: %w", err)
 	}
