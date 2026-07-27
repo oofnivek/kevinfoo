@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -9,6 +10,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"bookmarks/internal/loginlog"
 )
 
 // Renderer renders a named template to w.
@@ -23,10 +26,12 @@ type Handler struct {
 	recaptchaSite   string
 	recaptchaSecret string
 	httpClient      *http.Client
+	attempts        loginlog.Logger
+	logger          *slog.Logger
 	render          func(w http.ResponseWriter, name string, data any)
 }
 
-func NewHandler(session *Session, username, password, recaptchaSiteKey, recaptchaSecretKey string, r Renderer, logger *slog.Logger) *Handler {
+func NewHandler(session *Session, username, password, recaptchaSiteKey, recaptchaSecretKey string, attempts loginlog.Logger, r Renderer, logger *slog.Logger) *Handler {
 	return &Handler{
 		session:         session,
 		username:        username,
@@ -34,6 +39,8 @@ func NewHandler(session *Session, username, password, recaptchaSiteKey, recaptch
 		recaptchaSite:   recaptchaSiteKey,
 		recaptchaSecret: recaptchaSecretKey,
 		httpClient:      &http.Client{Timeout: 10 * time.Second},
+		attempts:        attempts,
+		logger:          logger,
 		render: func(w http.ResponseWriter, name string, data any) {
 			if err := r.Render(w, name, data); err != nil {
 				logger.Error("render template", "template", name, "error", err)
@@ -64,7 +71,8 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	password := r.PostForm.Get("password")
 	next := safeNext(r.PostForm.Get("next"))
 
-	if h.recaptchaSecret != "" && !h.verifyRecaptcha(r.PostForm.Get("g-recaptcha-response"), r.RemoteAddr) {
+	if h.recaptchaSecret != "" && !h.verifyRecaptcha(r.PostForm.Get("g-recaptcha-response"), clientIP(r)) {
+		h.logAttempt(r, username, false, "invalid_recaptcha")
 		h.render(w, "login", map[string]any{
 			"Next":          next,
 			"RecaptchaSite": h.recaptchaSite,
@@ -74,6 +82,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !CheckCredentials(username, password, h.username, h.password) {
+		h.logAttempt(r, username, false, "invalid_credentials")
 		h.render(w, "login", map[string]any{
 			"Next":          next,
 			"RecaptchaSite": h.recaptchaSite,
@@ -82,13 +91,46 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.logAttempt(r, username, true, "")
 	h.session.IssueCookie(w, r)
 	http.Redirect(w, r, next, http.StatusSeeOther)
 }
 
+// logAttempt records a login attempt for auditing. Failures to write the log
+// are reported but never block the login flow.
+func (h *Handler) logAttempt(r *http.Request, username string, success bool, reason string) {
+	if h.attempts == nil {
+		return
+	}
+
+	attempt := loginlog.Attempt{
+		Username:  username,
+		IP:        clientIP(r),
+		UserAgent: r.Header.Get("User-Agent"),
+		Success:   success,
+		Reason:    reason,
+		CreatedAt: time.Now().UTC(),
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := h.attempts.Log(ctx, attempt); err != nil {
+		h.logger.Error("log login attempt", "error", err)
+	}
+}
+
+// clientIP extracts the request IP from RemoteAddr, stripping the port.
+func clientIP(r *http.Request) string {
+	if ip, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		return ip
+	}
+	return r.RemoteAddr
+}
+
 // verifyRecaptcha checks a reCAPTCHA v2 response token against Google's
 // siteverify endpoint.
-func (h *Handler) verifyRecaptcha(token, remoteAddr string) bool {
+func (h *Handler) verifyRecaptcha(token, ip string) bool {
 	if token == "" {
 		return false
 	}
@@ -97,7 +139,7 @@ func (h *Handler) verifyRecaptcha(token, remoteAddr string) bool {
 		"secret":   {h.recaptchaSecret},
 		"response": {token},
 	}
-	if ip, _, err := net.SplitHostPort(remoteAddr); err == nil {
+	if ip != "" {
 		form.Set("remoteip", ip)
 	}
 

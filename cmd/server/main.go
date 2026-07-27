@@ -18,6 +18,7 @@ import (
 	"bookmarks/internal/bookmark"
 	"bookmarks/internal/config"
 	"bookmarks/internal/database"
+	"bookmarks/internal/loginlog"
 	"bookmarks/internal/server"
 	"bookmarks/internal/web"
 )
@@ -44,6 +45,12 @@ func run(logger *slog.Logger) error {
 	}
 	defer closeDB()
 
+	attempts, closeAttempts, err := openLoginLogger(context.Background(), cfg, logger)
+	if err != nil {
+		return err
+	}
+	defer closeAttempts()
+
 	renderer, err := web.NewRenderer()
 	if err != nil {
 		return err
@@ -64,7 +71,7 @@ func run(logger *slog.Logger) error {
 	}
 
 	session := auth.New(sessionSecret)
-	authHandler := auth.NewHandler(session, cfg.AuthUsername, cfg.AuthPassword, recaptchaSiteKey, recaptchaSecretKey, renderer, logger)
+	authHandler := auth.NewHandler(session, cfg.AuthUsername, cfg.AuthPassword, recaptchaSiteKey, recaptchaSecretKey, attempts, renderer, logger)
 
 	mux := server.NewMux(handler, authHandler, session.Middleware, session.Valid, renderer, ping, "web/static", logger)
 
@@ -103,6 +110,31 @@ func randomSecret() string {
 		panic(err)
 	}
 	return hex.EncodeToString(b)
+}
+
+// openLoginLogger connects to MongoDB and returns a logger for login
+// attempts. This is independent of DBDriver: login attempts are audited to
+// MongoDB even when bookmarks are stored in SQLite. If no Mongo host is
+// configured, login attempts are silently not logged, so local/sqlite-only
+// setups keep working without Mongo credentials.
+func openLoginLogger(ctx context.Context, cfg config.Config, logger *slog.Logger) (loginlog.Logger, func(), error) {
+	if cfg.MongoHost == "" {
+		logger.Warn("MONGODB_HOST not set, login attempts will not be logged")
+		return nil, func() {}, nil
+	}
+
+	client, err := database.OpenMongo(cfg.MongoURI())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	attemptLogger, err := loginlog.NewMongoLogger(ctx, client.Database(cfg.MongoDatabase))
+	if err != nil {
+		client.Disconnect(context.Background())
+		return nil, nil, err
+	}
+
+	return attemptLogger, func() { client.Disconnect(context.Background()) }, nil
 }
 
 // openRepository connects to the configured storage backend and returns the
