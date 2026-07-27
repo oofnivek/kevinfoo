@@ -120,8 +120,19 @@ func (h *Handler) logAttempt(r *http.Request, username string, success bool, rea
 	}
 }
 
-// clientIP extracts the request IP from RemoteAddr, stripping the port.
+// clientIP returns the originating client address. Render (and most
+// PaaS/reverse proxies) terminate the connection themselves, so RemoteAddr
+// is always the proxy's own loopback address; the real client IP is only
+// available via X-Forwarded-For, set to "client, proxy1, proxy2, ...".
 func clientIP(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		if ip := strings.TrimSpace(strings.Split(xff, ",")[0]); ip != "" {
+			return ip
+		}
+	}
+	if realIP := r.Header.Get("X-Real-IP"); realIP != "" {
+		return realIP
+	}
 	if ip, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
 		return ip
 	}
