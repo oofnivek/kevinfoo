@@ -120,6 +120,23 @@
             <p id="push-result" class="mt-3 hidden text-sm text-slate-600"></p>
         </div>
 
+        <div class="mt-6 rounded-md border border-slate-200 bg-white p-4">
+            <div class="flex items-center justify-between">
+                <h2 class="text-sm font-medium text-slate-900">Send with curl</h2>
+                <button
+                    id="curl-copy"
+                    type="button"
+                    class="rounded-md border border-slate-300 px-3 py-1 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                >
+                    Copy
+                </button>
+            </div>
+            <p class="mt-1 text-xs text-slate-500">
+                Built from the send form above. Form fields or JSON both work; limited to one request per second per IP.
+            </p>
+            <pre id="curl-command" class="mt-3 overflow-x-auto whitespace-pre rounded-md bg-slate-900 p-3 font-mono text-xs text-slate-100"></pre>
+        </div>
+
         <p id="push-error" class="mt-3 hidden rounded-md bg-red-50 px-3 py-2 text-sm text-red-700"></p>
     </div>
 
@@ -237,6 +254,7 @@
                 useBtn.addEventListener("click", () => {
                     sendUserIdEl.value = t.userId;
                     sendTopicEl.value = t.topic;
+                    renderCurl();
                     document.getElementById("send-title").focus();
                 });
 
@@ -344,6 +362,42 @@
                 showError("Could not send: " + e.message);
             } finally {
                 sendBtn.disabled = false;
+            }
+        });
+
+        const curlEl = document.getElementById("curl-command");
+        const curlCopyBtn = document.getElementById("curl-copy");
+        const sendTitleEl = document.getElementById("send-title");
+        const sendBodyEl = document.getElementById("send-body");
+
+        // shellQuote wraps s in single quotes so it is passed to curl as-is.
+        function shellQuote(s) {
+            return "'" + s.replace(/'/g, "'\\''") + "'";
+        }
+
+        function renderCurl() {
+            const field = (name, value, placeholder) => `  -d ${name}=${shellQuote(value.trim() || placeholder)}`;
+            curlEl.textContent = [
+                `curl ${location.origin}/push/send \\`,
+                field("userId", sendUserIdEl.value, "<user-id>") + " \\",
+                field("topic", sendTopicEl.value, "<topic>") + " \\",
+                field("title", sendTitleEl.value, "some_title") + " \\",
+                field("message", sendBodyEl.value, "some_message"),
+            ].join("\n");
+        }
+
+        for (const el of [sendUserIdEl, sendTopicEl, sendTitleEl, sendBodyEl]) {
+            el.addEventListener("input", renderCurl);
+        }
+        renderCurl();
+
+        curlCopyBtn.addEventListener("click", async () => {
+            try {
+                await navigator.clipboard.writeText(curlEl.textContent);
+                curlCopyBtn.textContent = "Copied";
+                setTimeout(() => { curlCopyBtn.textContent = "Copy"; }, 1500);
+            } catch {
+                showError("Could not copy. Select the command and copy it manually.");
             }
         });
 
