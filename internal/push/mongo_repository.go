@@ -14,17 +14,13 @@ type mongoRepository struct {
 	coll *mongo.Collection
 }
 
-// NewMongoRepository returns a Repository backed by MongoDB. The
-// push_subscriptions collection is created lazily by MongoDB on first write;
-// this sets up the unique index Save upserts against and an index for
-// looking up a topic's subscribers.
+// NewMongoRepository returns a Repository backed by MongoDB, storing
+// subscriptions in db's "subscriptions" collection. The collection and
+// database are created lazily by MongoDB on first write; this sets up the
+// unique index Save upserts against and an index for looking up a topic's
+// subscribers.
 func NewMongoRepository(ctx context.Context, db *mongo.Database) (Repository, error) {
-	coll := db.Collection("push_subscriptions")
-
-	// Subscriptions used to be unique per endpoint alone; that index would
-	// block registering one browser under several topics. Dropping it fails
-	// harmlessly when it doesn't exist.
-	coll.Indexes().DropOne(ctx, "endpoint_1")
+	coll := db.Collection("subscriptions")
 
 	_, err := coll.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
@@ -36,7 +32,7 @@ func NewMongoRepository(ctx context.Context, db *mongo.Database) (Repository, er
 		},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("create push_subscriptions indexes: %w", err)
+		return nil, fmt.Errorf("create push subscriptions indexes: %w", err)
 	}
 
 	return &mongoRepository{coll: coll}, nil

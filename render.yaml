@@ -22,6 +22,8 @@ services:
         value: Cluster0
       - key: MONGODB_DATABASE
         value: bookmarks
+      - key: MONGODB_PUSH_DATABASE
+        value: push_notifications
       - key: AUTH_USERNAME
         sync: false
       - key: AUTH_PASSWORD

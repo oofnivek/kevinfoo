@@ -166,15 +166,13 @@ func openRepositories(ctx context.Context, cfg config.Config) (repositories, fun
 		if err != nil {
 			return repositories{}, nil, nil, err
 		}
-		db := client.Database(cfg.MongoDatabase)
-
-		bookmarks, err := bookmark.NewMongoRepository(ctx, db)
+		bookmarks, err := bookmark.NewMongoRepository(ctx, client.Database(cfg.MongoDatabase))
 		if err != nil {
 			client.Disconnect(context.Background())
 			return repositories{}, nil, nil, err
 		}
 
-		pushes, err := push.NewMongoRepository(ctx, db)
+		pushes, err := push.NewMongoRepository(ctx, client.Database(cfg.MongoPushDatabase))
 		if err != nil {
 			client.Disconnect(context.Background())
 			return repositories{}, nil, nil, err

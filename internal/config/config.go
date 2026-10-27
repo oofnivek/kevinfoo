@@ -24,6 +24,9 @@ type Config struct {
 	MongoHost     string
 	MongoAppName  string
 	MongoDatabase string
+	// MongoPushDatabase holds push notification subscriptions, kept apart
+	// from the bookmarks data in MongoDatabase.
+	MongoPushDatabase string
 
 	// Auth gates the whole app behind a single username/password.
 	AuthUsername  string
@@ -60,6 +63,8 @@ func Load() Config {
 		MongoHost:     getEnv("MONGODB_HOST", ""),
 		MongoAppName:  getEnv("MONGODB_APP_NAME", "Cluster0"),
 		MongoDatabase: getEnv("MONGODB_DATABASE", "bookmarks"),
+
+		MongoPushDatabase: getEnv("MONGODB_PUSH_DATABASE", "push_notifications"),
 
 		AuthUsername:  getEnv("AUTH_USERNAME", ""),
 		AuthPassword:  getEnv("AUTH_PASSWORD", ""),
