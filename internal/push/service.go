@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -228,7 +229,15 @@ func (s *Service) sendOne(ctx context.Context, sub Subscription, payload []byte)
 	case resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusGone:
 		return false, true
 	default:
-		s.logger.Warn("push service rejected notification", "host", endpointHost(sub.Endpoint), "status", resp.StatusCode)
+		// Push services explain rejections in the body, e.g. Apple's
+		// {"reason":"BadJwtToken"}; it never contains subscriber data.
+		reason, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		s.logger.Warn("push service rejected notification",
+			"host", endpointHost(sub.Endpoint),
+			"status", resp.StatusCode,
+			"reason", strings.TrimSpace(string(reason)),
+			"subject", s.subject,
+		)
 		return false, false
 	}
 }
