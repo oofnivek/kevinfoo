@@ -75,9 +75,12 @@ func NewService(repo Repository, publicKey, privateKey, subject string, logger *
 		repo:       repo,
 		publicKey:  publicKey,
 		privateKey: privateKey,
-		subject:    subject,
-		client:     &http.Client{Timeout: sendTimeout},
-		logger:     logger,
+		// webpush-go adds "mailto:" to non-https subjects itself, so a
+		// subject already written as "mailto:..." would be sent as
+		// "mailto:mailto:...", which Apple's push service rejects.
+		subject: strings.TrimPrefix(strings.TrimSpace(subject), "mailto:"),
+		client:  &http.Client{Timeout: sendTimeout},
+		logger:  logger,
 	}
 }
 
