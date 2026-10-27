@@ -39,6 +39,8 @@ func NewMux(bookmarks *bookmark.Handler, pushes *push.Handler, auth AuthHandler,
 
 	mux.HandleFunc("GET /push-notifications", pushes.Page)
 	mux.HandleFunc("GET /sw.js", pushes.ServiceWorker)
+	mux.HandleFunc("GET /push/manifest.webmanifest", pushes.Manifest)
+	mux.Handle("GET /push/static/", pushes.Static())
 	mux.Handle("POST /push/subscribe", rateLimit(http.HandlerFunc(pushes.Subscribe)))
 	mux.HandleFunc("POST /push/unsubscribe", pushes.Unsubscribe)
 	mux.HandleFunc("POST /push/topics", pushes.Topics)

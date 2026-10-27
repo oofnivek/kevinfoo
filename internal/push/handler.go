@@ -1,10 +1,11 @@
 package push
 
 import (
-	_ "embed"
+	"embed"
 	"encoding/json"
 	"errors"
 	"io"
+	"io/fs"
 	"log/slog"
 	"mime"
 	"net/http"
@@ -12,6 +13,16 @@ import (
 
 //go:embed sw.js
 var serviceWorker []byte
+
+// manifest makes the page installable as a web app, which iOS requires
+// before it allows push: the site must be added to the Home Screen and
+// opened from there.
+//
+//go:embed manifest.webmanifest
+var manifest []byte
+
+//go:embed static
+var staticFiles embed.FS
 
 const maxRequestBody = 8 << 10
 
@@ -50,6 +61,20 @@ func (h *Handler) ServiceWorker(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Write(serviceWorker)
+}
+
+func (h *Handler) Manifest(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/manifest+json")
+	w.Write(manifest)
+}
+
+// Static serves the app icons under /push/static/.
+func (h *Handler) Static() http.Handler {
+	sub, err := fs.Sub(staticFiles, "static")
+	if err != nil {
+		panic(err) // the embedded directory is fixed at build time
+	}
+	return http.StripPrefix("/push/static/", http.FileServerFS(sub))
 }
 
 // subscriptionJSON matches the shape of PushSubscription.toJSON().

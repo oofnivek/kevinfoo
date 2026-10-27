@@ -14,6 +14,7 @@ self.addEventListener("push", (event) => {
     event.waitUntil(
         self.registration.showNotification(msg.title, {
             body: msg.body,
+            icon: "/push/static/icon-192.png",
             data: { url: "/push-notifications" },
         })
     );
