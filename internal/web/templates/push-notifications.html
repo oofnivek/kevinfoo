@@ -20,6 +20,23 @@
             topic can send a notification to it, even when this page is closed. Treat the topic like a password.
         </p>
 
+        <details id="ios-help" class="mt-6 rounded-md border border-slate-200 bg-white p-4">
+            <summary class="cursor-pointer text-sm font-medium text-slate-900">Using an iPhone or iPad?</summary>
+            <p class="mt-3 text-sm text-slate-600">
+                iOS only delivers notifications to websites added to the Home Screen. It needs iOS / iPadOS 16.4 or later.
+            </p>
+            <ol class="mt-2 list-decimal space-y-1 pl-5 text-sm text-slate-600">
+                <li>Open this page in <span class="font-medium text-slate-900">Safari</span>. Other iPhone browsers can't add it.</li>
+                <li>Tap the <span class="font-medium text-slate-900">Share</span> button, then <span class="font-medium text-slate-900">Add to Home Screen</span>, then <span class="font-medium text-slate-900">Add</span>.</li>
+                <li>Open the new <span class="font-medium text-slate-900">Push</span> icon on your Home Screen, not Safari.</li>
+                <li>Tap <span class="font-medium text-slate-900">Subscribe</span> and allow notifications when asked.</li>
+            </ol>
+            <p class="mt-3 text-xs text-slate-500">
+                The Home Screen app has its own storage, so it starts with a new user ID. Paste your old one in to keep it.
+                Removing the app from the Home Screen also removes its subscription.
+            </p>
+        </details>
+
         <div class="mt-6 rounded-md border border-slate-200 bg-white p-4">
             <h2 class="text-sm font-medium text-slate-900">Subscribe</h2>
 
@@ -300,10 +317,20 @@
             }
         }
 
+        // iPadOS reports itself as a Mac, so touch support tells them apart.
+        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+            (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+        const isStandalone = navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
+        if (isIOS && !isStandalone) {
+            document.getElementById("ios-help").open = true;
+        }
+
         async function init() {
             if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
                 subscribeBtn.disabled = true;
-                showError("This browser doesn't support push notifications. On iPhone/iPad, add this site to your Home Screen first. You can still send notifications below.");
+                showError(isIOS && !isStandalone
+                    ? "To subscribe on iPhone/iPad, add this page to your Home Screen first. See \"Using an iPhone or iPad?\" at the top. You can still send notifications below."
+                    : "This browser doesn't support push notifications. You can still send notifications below.");
                 return;
             }
             if (!pushEnabled) {
