@@ -99,6 +99,8 @@ func run(logger *slog.Logger) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	go pushSvc.RunCleanup(ctx, time.Hour)
+
 	go func() {
 		<-ctx.Done()
 		logger.Info("shutting down")

@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"mime"
 	"net/http"
+	"time"
 )
 
 //go:embed sw.js
@@ -91,6 +92,11 @@ type topicJSON struct {
 	Topic  string `json:"topic"`
 }
 
+type topicStatusJSON struct {
+	topicJSON
+	LastUsedAt time.Time `json:"lastUsedAt"`
+}
+
 func (h *Handler) Subscribe(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		topicJSON
@@ -147,9 +153,12 @@ func (h *Handler) Topics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	topics := make([]topicJSON, 0, len(subs))
+	topics := make([]topicStatusJSON, 0, len(subs))
 	for _, s := range subs {
-		topics = append(topics, topicJSON{UserID: s.UserID, Topic: s.Topic})
+		topics = append(topics, topicStatusJSON{
+			topicJSON:  topicJSON{UserID: s.UserID, Topic: s.Topic},
+			LastUsedAt: s.LastUsedAt,
+		})
 	}
 	h.writeJSON(w, topics)
 }

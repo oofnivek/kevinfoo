@@ -88,6 +88,7 @@
             </button>
 
             <h3 class="mt-6 text-xs font-medium text-slate-600">Subscribed topics on this browser</h3>
+            <p class="mt-1 text-xs text-slate-500">Topics that aren't subscribed to or sent to for 90 days are removed.</p>
             <p id="push-topics-empty" class="mt-1 text-sm text-slate-500">None yet.</p>
             <ul id="push-topics" class="mt-2 grid gap-2"></ul>
         </div>
@@ -265,7 +266,10 @@
                 const userId = document.createElement("span");
                 userId.className = "block truncate font-mono text-xs text-slate-500";
                 userId.textContent = "user " + t.userId;
-                text.append(topic, userId);
+                const lastUsed = document.createElement("span");
+                lastUsed.className = "block text-xs text-slate-500";
+                lastUsed.textContent = "last used " + new Date(t.lastUsedAt).toLocaleString();
+                text.append(topic, userId, lastUsed);
 
                 const useBtn = document.createElement("button");
                 useBtn.type = "button";

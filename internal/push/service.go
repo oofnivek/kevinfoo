@@ -166,6 +166,9 @@ func (s *Service) Send(ctx context.Context, userID, topic string, msg Message) (
 	if len(subs) == 0 {
 		return Result{}, ErrNoSubscribers
 	}
+	if err := s.repo.Touch(ctx, userID, topic); err != nil {
+		s.logger.Error("mark push subscriptions used", "error", err)
+	}
 
 	var (
 		mu     sync.Mutex
@@ -202,6 +205,29 @@ func (s *Service) Send(ctx context.Context, userID, topic string, msg Message) (
 	wg.Wait()
 
 	return result, nil
+}
+
+// RunCleanup deletes subscriptions unused for Retention, once at start and
+// then every interval, until ctx is done. MongoDB also expires them with a
+// TTL index; SQLite relies on this alone.
+func (s *Service) RunCleanup(ctx context.Context, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		n, err := s.repo.DeleteUnused(ctx, Retention)
+		if err != nil {
+			s.logger.Error("clean up unused push subscriptions", "error", err)
+		} else if n > 0 {
+			s.logger.Info("cleaned up unused push subscriptions", "removed", n)
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
 }
 
 // sendOne delivers payload to sub, reporting whether it was accepted and
