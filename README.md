@@ -11,6 +11,7 @@ cmd/server/            application entrypoint
 internal/config/       environment configuration
 internal/database/     SQLite connection + embedded migrations
 internal/bookmark/     domain model, repository, service, HTTP handlers
+internal/push/         web push subscriptions, sending, service worker
 internal/web/          HTML template rendering (embedded templates)
 internal/server/       route registration
 web/static/            Tailwind input/output CSS, served at /static
@@ -45,3 +46,39 @@ make css-watch
 | `make build`     | Build a production binary with minified CSS |
 | `make test`      | Run the test suite                        |
 | `make vet`       | Run `go vet`                              |
+| `make vapid`     | Generate VAPID keys for push notifications |
+
+## Push notifications API
+
+Subscribe a browser to a user ID + topic on `/push-notifications`, then send
+to it from anywhere with `POST /push/send`. No login is needed: knowing the
+user ID and topic is what authorizes a send, so keep the topic secret.
+
+| Field     | Required | Description                                   |
+| --------- | -------- | --------------------------------------------- |
+| `userId`  | yes      | UUID                                          |
+| `topic`   | yes      | UUID, or 20-64 letters, digits, `-` or `_`    |
+| `title`   | yes      | Up to 200 characters                          |
+| `message` | no       | Up to 1000 characters                         |
+
+Send as form fields or JSON:
+
+```sh
+curl https://kevinfoo.onrender.com/push/send \
+  -d userId=<user-id> -d topic=<topic> \
+  -d title=some_title -d message=some_message
+
+curl https://kevinfoo.onrender.com/push/send \
+  -H 'Content-Type: application/json' \
+  -d '{"userId":"<user-id>","topic":"<topic>","title":"some_title","message":"some_message"}'
+```
+
+Responses:
+
+| Status | Meaning                                                                  |
+| ------ | ------------------------------------------------------------------------ |
+| 200    | `{"sent":1,"failed":0,"removed":0}`; `removed` counts expired browsers   |
+| 400    | Invalid user ID, topic, title, or message                                |
+| 404    | No browser is subscribed under that user ID + topic                      |
+| 429    | Rate limited: one request per second per IP                              |
+| 503    | Push isn't configured on the server (VAPID keys missing)                 |

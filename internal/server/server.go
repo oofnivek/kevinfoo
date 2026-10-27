@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"bookmarks/internal/bookmark"
+	"bookmarks/internal/push"
 )
 
 // Renderer renders a named template to w.
@@ -22,7 +23,7 @@ type AuthHandler interface {
 	Logout(w http.ResponseWriter, r *http.Request)
 }
 
-func NewMux(bookmarks *bookmark.Handler, auth AuthHandler, protect func(http.Handler) http.Handler, authed func(*http.Request) bool, renderer Renderer, ping func(context.Context) error, staticDir string, logger *slog.Logger) *http.ServeMux {
+func NewMux(bookmarks *bookmark.Handler, pushes *push.Handler, auth AuthHandler, protect, rateLimit func(http.Handler) http.Handler, authed func(*http.Request) bool, renderer Renderer, ping func(context.Context) error, staticDir string, logger *slog.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
@@ -35,6 +36,13 @@ func NewMux(bookmarks *bookmark.Handler, auth AuthHandler, protect func(http.Han
 
 	mux.HandleFunc("GET /{$}", homePage(renderer, logger, authed))
 	mux.HandleFunc("GET /jwt-decoder", toolPage(renderer, logger, "jwt-decoder"))
+
+	mux.HandleFunc("GET /push-notifications", pushes.Page)
+	mux.HandleFunc("GET /sw.js", pushes.ServiceWorker)
+	mux.Handle("POST /push/subscribe", rateLimit(http.HandlerFunc(pushes.Subscribe)))
+	mux.HandleFunc("POST /push/unsubscribe", pushes.Unsubscribe)
+	mux.HandleFunc("POST /push/topics", pushes.Topics)
+	mux.Handle("POST /push/send", rateLimit(http.HandlerFunc(pushes.Send)))
 
 	mux.Handle("GET /bookmarks", protect(http.HandlerFunc(bookmarks.Page)))
 	mux.Handle("GET /bookmarks/list", protect(http.HandlerFunc(bookmarks.List)))

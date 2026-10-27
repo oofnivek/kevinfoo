@@ -36,6 +36,13 @@ type Config struct {
 	RecaptchaEnabled   bool
 	RecaptchaSiteKey   string
 	RecaptchaSecretKey string
+
+	// VAPID keys sign Web Push notifications. Push is disabled unless both
+	// keys are set. VAPIDSubject is a contact e-mail (or https URL) that
+	// push services can use to reach the sender.
+	VAPIDPublicKey  string
+	VAPIDPrivateKey string
+	VAPIDSubject    string
 }
 
 func Load() Config {
@@ -61,6 +68,10 @@ func Load() Config {
 		RecaptchaEnabled:   getEnvBool("RECAPTCHA_ENABLED", true),
 		RecaptchaSiteKey:   getEnv("RECAPTCHA_SITE_KEY", ""),
 		RecaptchaSecretKey: getEnv("RECAPTCHA_SECRET_KEY", ""),
+
+		VAPIDPublicKey:  getEnv("VAPID_PUBLIC_KEY", ""),
+		VAPIDPrivateKey: getEnv("VAPID_PRIVATE_KEY", ""),
+		VAPIDSubject:    getEnv("VAPID_SUBJECT", ""),
 	}
 }
 

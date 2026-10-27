@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"io"
 	"log/slog"
-	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
+	"bookmarks/internal/clientip"
 	"bookmarks/internal/loginlog"
 )
 
@@ -71,7 +71,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	password := r.PostForm.Get("password")
 	next := safeNext(r.PostForm.Get("next"))
 
-	if h.recaptchaSecret != "" && !h.verifyRecaptcha(r.PostForm.Get("g-recaptcha-response"), clientIP(r)) {
+	if h.recaptchaSecret != "" && !h.verifyRecaptcha(r.PostForm.Get("g-recaptcha-response"), clientip.FromRequest(r)) {
 		h.logAttempt(r, username, false, "invalid_recaptcha")
 		h.render(w, "login", map[string]any{
 			"Next":          next,
@@ -105,7 +105,7 @@ func (h *Handler) logAttempt(r *http.Request, username string, success bool, rea
 
 	attempt := loginlog.Attempt{
 		Username:  username,
-		IP:        clientIP(r),
+		IP:        clientip.FromRequest(r),
 		UserAgent: r.Header.Get("User-Agent"),
 		Success:   success,
 		Reason:    reason,
@@ -118,25 +118,6 @@ func (h *Handler) logAttempt(r *http.Request, username string, success bool, rea
 	if err := h.attempts.Log(ctx, attempt); err != nil {
 		h.logger.Error("log login attempt", "error", err)
 	}
-}
-
-// clientIP returns the originating client address. Render (and most
-// PaaS/reverse proxies) terminate the connection themselves, so RemoteAddr
-// is always the proxy's own loopback address; the real client IP is only
-// available via X-Forwarded-For, set to "client, proxy1, proxy2, ...".
-func clientIP(r *http.Request) string {
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		if ip := strings.TrimSpace(strings.Split(xff, ",")[0]); ip != "" {
-			return ip
-		}
-	}
-	if realIP := r.Header.Get("X-Real-IP"); realIP != "" {
-		return realIP
-	}
-	if ip, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
-		return ip
-	}
-	return r.RemoteAddr
 }
 
 // verifyRecaptcha checks a reCAPTCHA v2 response token against Google's

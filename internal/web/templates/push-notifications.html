@@ -1,0 +1,354 @@
+{{define "push-notifications"}}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Push Notifications</title>
+    <link rel="stylesheet" href="/static/css/output.css">
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900">
+    <div class="mx-auto max-w-3xl px-4 py-10">
+        <a href="/" class="mb-4 inline-block text-sm text-slate-500 hover:underline">&larr; Home</a>
+
+        <h1 class="text-2xl font-semibold tracking-tight">Push Notifications</h1>
+        <p class="mt-2 text-sm text-slate-600">
+            Subscribe this browser to a topic under your user ID. Anyone who knows both the user ID and the
+            topic can send a notification to it, even when this page is closed. Treat the topic like a password.
+        </p>
+
+        <div class="mt-6 rounded-md border border-slate-200 bg-white p-4">
+            <h2 class="text-sm font-medium text-slate-900">Subscribe</h2>
+
+            <label class="mt-3 block text-xs font-medium text-slate-600" for="push-user-id">User ID</label>
+            <div class="mt-1 flex gap-2">
+                <input
+                    id="push-user-id"
+                    type="text"
+                    autocomplete="off"
+                    spellcheck="false"
+                    class="w-full rounded-md border border-slate-300 px-3 py-2 font-mono text-xs focus:border-slate-500 focus:outline-none"
+                >
+                <button
+                    id="push-new-user-id"
+                    type="button"
+                    class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                >
+                    New
+                </button>
+            </div>
+            <p class="mt-1 text-xs text-slate-500">Generated for you. To reuse one from before, paste it here.</p>
+
+            <label class="mt-4 block text-xs font-medium text-slate-600" for="push-topic">Topic</label>
+            <div class="mt-1 flex gap-2">
+                <input
+                    id="push-topic"
+                    type="text"
+                    autocomplete="off"
+                    spellcheck="false"
+                    maxlength="64"
+                    placeholder="20-64 letters, digits, - or _"
+                    class="w-full rounded-md border border-slate-300 px-3 py-2 font-mono text-xs focus:border-slate-500 focus:outline-none"
+                >
+                <button
+                    id="push-generate-topic"
+                    type="button"
+                    class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                >
+                    Generate
+                </button>
+            </div>
+
+            <button
+                id="push-subscribe"
+                type="button"
+                class="mt-4 rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700"
+            >
+                Subscribe
+            </button>
+
+            <h3 class="mt-6 text-xs font-medium text-slate-600">Subscribed topics on this browser</h3>
+            <p id="push-topics-empty" class="mt-1 text-sm text-slate-500">None yet.</p>
+            <ul id="push-topics" class="mt-2 grid gap-2"></ul>
+        </div>
+
+        <div class="mt-6 rounded-md border border-slate-200 bg-white p-4">
+            <h2 class="text-sm font-medium text-slate-900">Send a notification</h2>
+
+            <label class="mt-3 block text-xs font-medium text-slate-600" for="send-user-id">User ID</label>
+            <input
+                id="send-user-id"
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 font-mono text-xs focus:border-slate-500 focus:outline-none"
+            >
+
+            <label class="mt-4 block text-xs font-medium text-slate-600" for="send-topic">Topic</label>
+            <input
+                id="send-topic"
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                maxlength="64"
+                class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 font-mono text-xs focus:border-slate-500 focus:outline-none"
+            >
+
+            <label class="mt-4 block text-xs font-medium text-slate-600" for="send-title">Title</label>
+            <input
+                id="send-title"
+                type="text"
+                maxlength="200"
+                class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+            >
+
+            <label class="mt-4 block text-xs font-medium text-slate-600" for="send-body">Message</label>
+            <textarea
+                id="send-body"
+                rows="3"
+                maxlength="1000"
+                class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+            ></textarea>
+
+            <button
+                id="push-send"
+                type="button"
+                class="mt-4 rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700"
+            >
+                Send
+            </button>
+            <p id="push-result" class="mt-3 hidden text-sm text-slate-600"></p>
+        </div>
+
+        <p id="push-error" class="mt-3 hidden rounded-md bg-red-50 px-3 py-2 text-sm text-red-700"></p>
+    </div>
+
+    <script>
+        const pushEnabled = {{.Enabled}};
+        const vapidPublicKey = {{.PublicKey}};
+        const userIdStorageKey = "push-user-id";
+        const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const topicPattern = /^[A-Za-z0-9_-]{20,64}$/;
+
+        const userIdEl = document.getElementById("push-user-id");
+        const topicEl = document.getElementById("push-topic");
+        const subscribeBtn = document.getElementById("push-subscribe");
+        const topicsEl = document.getElementById("push-topics");
+        const topicsEmptyEl = document.getElementById("push-topics-empty");
+        const sendUserIdEl = document.getElementById("send-user-id");
+        const sendTopicEl = document.getElementById("send-topic");
+        const sendBtn = document.getElementById("push-send");
+        const resultEl = document.getElementById("push-result");
+        const errorEl = document.getElementById("push-error");
+
+        function showError(message) {
+            errorEl.textContent = message;
+            errorEl.classList.remove("hidden");
+        }
+
+        function clearError() {
+            errorEl.classList.add("hidden");
+        }
+
+        function urlBase64ToUint8Array(base64) {
+            const padded = (base64 + "=".repeat((4 - (base64.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/");
+            return Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));
+        }
+
+        async function postJSON(url, body) {
+            const resp = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+            });
+            if (!resp.ok) {
+                throw new Error((await resp.text()).trim() || resp.statusText);
+            }
+            return resp;
+        }
+
+        function validateTopic(userId, topic) {
+            if (!uuidPattern.test(userId)) {
+                throw new Error("User ID must be a UUID.");
+            }
+            if (!topicPattern.test(topic)) {
+                throw new Error("Topic must be 20-64 letters, digits, - or _.");
+            }
+        }
+
+        function loadUserId() {
+            try {
+                const saved = localStorage.getItem(userIdStorageKey);
+                if (saved) return saved;
+            } catch {}
+            return crypto.randomUUID();
+        }
+
+        function saveUserId(userId) {
+            try {
+                localStorage.setItem(userIdStorageKey, userId);
+            } catch {}
+        }
+
+        userIdEl.value = loadUserId();
+        saveUserId(userIdEl.value);
+        sendUserIdEl.value = userIdEl.value;
+
+        userIdEl.addEventListener("change", () => {
+            const userId = userIdEl.value.trim();
+            if (uuidPattern.test(userId)) {
+                saveUserId(userId);
+            }
+        });
+
+        document.getElementById("push-new-user-id").addEventListener("click", () => {
+            userIdEl.value = crypto.randomUUID();
+            saveUserId(userIdEl.value);
+        });
+
+        document.getElementById("push-generate-topic").addEventListener("click", () => {
+            topicEl.value = crypto.randomUUID();
+        });
+
+        let registration;
+
+        function renderTopics(topics) {
+            topicsEl.replaceChildren();
+            topicsEmptyEl.classList.toggle("hidden", topics.length > 0);
+
+            for (const t of topics) {
+                const li = document.createElement("li");
+                li.className = "flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2";
+
+                const text = document.createElement("div");
+                text.className = "min-w-0 flex-1";
+                const topic = document.createElement("span");
+                topic.className = "block truncate font-mono text-xs text-slate-900";
+                topic.textContent = t.topic;
+                const userId = document.createElement("span");
+                userId.className = "block truncate font-mono text-xs text-slate-500";
+                userId.textContent = "user " + t.userId;
+                text.append(topic, userId);
+
+                const useBtn = document.createElement("button");
+                useBtn.type = "button";
+                useBtn.className = "text-sm text-slate-500 hover:underline";
+                useBtn.textContent = "Use";
+                useBtn.addEventListener("click", () => {
+                    sendUserIdEl.value = t.userId;
+                    sendTopicEl.value = t.topic;
+                    document.getElementById("send-title").focus();
+                });
+
+                const removeBtn = document.createElement("button");
+                removeBtn.type = "button";
+                removeBtn.className = "text-sm text-red-600 hover:underline";
+                removeBtn.textContent = "Remove";
+                removeBtn.addEventListener("click", () => removeTopic(t));
+
+                li.append(text, useBtn, removeBtn);
+                topicsEl.append(li);
+            }
+        }
+
+        async function refreshTopics() {
+            const subscription = await registration.pushManager.getSubscription();
+            if (!subscription) {
+                renderTopics([]);
+                return [];
+            }
+            const resp = await postJSON("/push/topics", { endpoint: subscription.endpoint });
+            const topics = await resp.json();
+            renderTopics(topics);
+            return topics;
+        }
+
+        async function removeTopic(t) {
+            clearError();
+            try {
+                const subscription = await registration.pushManager.getSubscription();
+                if (subscription) {
+                    await postJSON("/push/unsubscribe", { endpoint: subscription.endpoint, userId: t.userId, topic: t.topic });
+                }
+                const remaining = await refreshTopics();
+                if (subscription && remaining.length === 0) {
+                    await subscription.unsubscribe();
+                }
+            } catch (e) {
+                showError("Could not remove topic: " + e.message);
+            }
+        }
+
+        async function init() {
+            if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+                subscribeBtn.disabled = true;
+                showError("This browser doesn't support push notifications. On iPhone/iPad, add this site to your Home Screen first. You can still send notifications below.");
+                return;
+            }
+            if (!pushEnabled) {
+                subscribeBtn.disabled = true;
+                showError("Push notifications aren't configured on the server yet.");
+                return;
+            }
+
+            registration = await navigator.serviceWorker.register("/sw.js");
+            await refreshTopics();
+        }
+
+        subscribeBtn.addEventListener("click", async () => {
+            clearError();
+            try {
+                const userId = userIdEl.value.trim();
+                const topic = topicEl.value.trim();
+                validateTopic(userId, topic);
+
+                const permission = await Notification.requestPermission();
+                if (permission !== "granted") {
+                    throw new Error("Notification permission was not granted. Allow notifications for this site in your browser settings.");
+                }
+
+                const subscription = await registration.pushManager.getSubscription() ||
+                    await registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+                    });
+                await postJSON("/push/subscribe", { userId, topic, subscription: subscription.toJSON() });
+
+                saveUserId(userId);
+                topicEl.value = "";
+                await refreshTopics();
+            } catch (e) {
+                showError("Could not subscribe: " + e.message);
+            }
+        });
+
+        sendBtn.addEventListener("click", async () => {
+            clearError();
+            resultEl.classList.add("hidden");
+            sendBtn.disabled = true;
+            try {
+                const userId = sendUserIdEl.value.trim();
+                const topic = sendTopicEl.value.trim();
+                validateTopic(userId, topic);
+
+                const resp = await postJSON("/push/send", {
+                    userId,
+                    topic,
+                    title: document.getElementById("send-title").value,
+                    message: document.getElementById("send-body").value,
+                });
+                const result = await resp.json();
+                resultEl.textContent = `Sent: ${result.sent}, failed: ${result.failed}, expired and removed: ${result.removed}`;
+                resultEl.classList.remove("hidden");
+            } catch (e) {
+                showError("Could not send: " + e.message);
+            } finally {
+                sendBtn.disabled = false;
+            }
+        });
+
+        init().catch((e) => showError("Could not set up push notifications: " + e.message));
+    </script>
+</body>
+</html>
+{{end}}

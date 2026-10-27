@@ -1,4 +1,4 @@
-.PHONY: run build css css-watch dev test vet tidy clean
+.PHONY: run build css css-watch dev test vet tidy clean vapid
 
 PORT ?= 8080
 
@@ -34,6 +34,10 @@ vet:
 # Tidy go.mod
 tidy:
 	go mod tidy
+
+# Generate a VAPID key pair for push notifications (paste into .env)
+vapid:
+	@go run ./cmd/vapid
 
 # Remove build artifacts
 clean:

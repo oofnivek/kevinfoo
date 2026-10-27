@@ -19,6 +19,8 @@ import (
 	"bookmarks/internal/config"
 	"bookmarks/internal/database"
 	"bookmarks/internal/loginlog"
+	"bookmarks/internal/push"
+	"bookmarks/internal/ratelimit"
 	"bookmarks/internal/server"
 	"bookmarks/internal/web"
 )
@@ -39,7 +41,7 @@ func run(logger *slog.Logger) error {
 		return fmt.Errorf("AUTH_USERNAME and AUTH_PASSWORD must be set")
 	}
 
-	repo, ping, closeDB, err := openRepository(context.Background(), cfg)
+	repos, ping, closeDB, err := openRepositories(context.Background(), cfg)
 	if err != nil {
 		return err
 	}
@@ -56,7 +58,7 @@ func run(logger *slog.Logger) error {
 		return err
 	}
 
-	svc := bookmark.NewService(repo)
+	svc := bookmark.NewService(repos.bookmarks)
 	handler := bookmark.NewHandler(svc, renderer, logger)
 
 	sessionSecret := cfg.SessionSecret
@@ -73,7 +75,18 @@ func run(logger *slog.Logger) error {
 	session := auth.New(sessionSecret)
 	authHandler := auth.NewHandler(session, cfg.AuthUsername, cfg.AuthPassword, recaptchaSiteKey, recaptchaSecretKey, attempts, renderer, logger)
 
-	mux := server.NewMux(handler, authHandler, session.Middleware, session.Valid, renderer, ping, "web/static", logger)
+	if cfg.VAPIDPublicKey == "" || cfg.VAPIDPrivateKey == "" {
+		logger.Warn("VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY not set, push notifications are disabled; generate keys with: make vapid")
+	} else if cfg.VAPIDSubject == "" {
+		logger.Warn("VAPID_SUBJECT not set; some push services (e.g. Safari) reject notifications without a contact address")
+	}
+	pushSvc := push.NewService(repos.push, cfg.VAPIDPublicKey, cfg.VAPIDPrivateKey, cfg.VAPIDSubject, logger)
+	pushHandler := push.NewHandler(pushSvc, renderer, logger)
+
+	// Public push endpoints are limited to one request per second per IP.
+	pushLimiter := ratelimit.New(time.Second)
+
+	mux := server.NewMux(handler, pushHandler, authHandler, session.Middleware, pushLimiter.Middleware, session.Valid, renderer, ping, "web/static", logger)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
@@ -137,41 +150,58 @@ func openLoginLogger(ctx context.Context, cfg config.Config, logger *slog.Logger
 	return attemptLogger, func() { client.Disconnect(context.Background()) }, nil
 }
 
-// openRepository connects to the configured storage backend and returns the
-// bookmark repository, a health-check ping function, and a cleanup func.
-func openRepository(ctx context.Context, cfg config.Config) (bookmark.Repository, func(context.Context) error, func(), error) {
+// repositories holds the storage for each feature, all backed by the same
+// configured database.
+type repositories struct {
+	bookmarks bookmark.Repository
+	push      push.Repository
+}
+
+// openRepositories connects to the configured storage backend and returns the
+// repositories, a health-check ping function, and a cleanup func.
+func openRepositories(ctx context.Context, cfg config.Config) (repositories, func(context.Context) error, func(), error) {
 	switch cfg.DBDriver {
 	case "mongo":
 		client, err := database.OpenMongo(cfg.MongoURI())
 		if err != nil {
-			return nil, nil, nil, err
+			return repositories{}, nil, nil, err
 		}
+		db := client.Database(cfg.MongoDatabase)
 
-		repo, err := bookmark.NewMongoRepository(ctx, client.Database(cfg.MongoDatabase))
+		bookmarks, err := bookmark.NewMongoRepository(ctx, db)
 		if err != nil {
 			client.Disconnect(context.Background())
-			return nil, nil, nil, err
+			return repositories{}, nil, nil, err
+		}
+
+		pushes, err := push.NewMongoRepository(ctx, db)
+		if err != nil {
+			client.Disconnect(context.Background())
+			return repositories{}, nil, nil, err
 		}
 
 		ping := func(ctx context.Context) error { return client.Ping(ctx, nil) }
 		closeFn := func() { client.Disconnect(context.Background()) }
-		return repo, ping, closeFn, nil
+		return repositories{bookmarks: bookmarks, push: pushes}, ping, closeFn, nil
 
 	case "sqlite":
 		db, err := database.Open(cfg.DBPath)
 		if err != nil {
-			return nil, nil, nil, err
+			return repositories{}, nil, nil, err
 		}
 
 		if err := database.Migrate(db); err != nil {
 			db.Close()
-			return nil, nil, nil, err
+			return repositories{}, nil, nil, err
 		}
 
-		repo := bookmark.NewSQLiteRepository(db)
-		return repo, db.PingContext, func() { db.Close() }, nil
+		repos := repositories{
+			bookmarks: bookmark.NewSQLiteRepository(db),
+			push:      push.NewSQLiteRepository(db),
+		}
+		return repos, db.PingContext, func() { db.Close() }, nil
 
 	default:
-		return nil, nil, nil, fmt.Errorf("unknown DB_DRIVER %q (expected \"sqlite\" or \"mongo\")", cfg.DBDriver)
+		return repositories{}, nil, nil, fmt.Errorf("unknown DB_DRIVER %q (expected \"sqlite\" or \"mongo\")", cfg.DBDriver)
 	}
 }
